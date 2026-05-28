@@ -1,0 +1,58 @@
+{
+  "name": "XeroToken",
+  "type": "object",
+  "properties": {
+    "refresh_token": {
+      "type": "string",
+      "description": "Xero OAuth2 refresh token"
+    },
+    "tenant_id": {
+      "type": "string",
+      "description": "Xero tenant/organisation ID"
+    },
+    "tenant_name": {
+      "type": "string",
+      "description": "Xero organisation name"
+    },
+    "connected_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When connection was established"
+    },
+    "connected_by": {
+      "type": "string",
+      "description": "Email of admin who connected"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Optional notes about this Xero connection"
+    }
+  },
+  "required": [
+    "refresh_token",
+    "tenant_id"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

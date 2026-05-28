@@ -1,0 +1,53 @@
+{
+  "name": "PlanGoal",
+  "type": "object",
+  "properties": {
+    "participant_id": {
+      "type": "string",
+      "description": "Linked participant ID"
+    },
+    "title": {
+      "type": "string",
+      "description": "Goal title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Goal description"
+    },
+    "supports_strategies": {
+      "type": "string",
+      "description": "Supports and strategies to work towards this goal"
+    },
+    "progress_notes": {
+      "type": "string",
+      "description": "Progress notes"
+    },
+    "archived": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this goal is archived (from a previous plan period)"
+    },
+    "archive_label": {
+      "type": "string",
+      "description": "Label for the archived plan period e.g. 'Plan 2023\u20132024'"
+    }
+  },
+  "required": [
+    "participant_id",
+    "title"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "update": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

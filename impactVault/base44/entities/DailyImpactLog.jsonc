@@ -1,0 +1,151 @@
+{
+  "name": "DailyImpactLog",
+  "type": "object",
+  "properties": {
+    "participant_id": {
+      "type": "string",
+      "description": "Linked participant ID"
+    },
+    "plan_goal_id": {
+      "type": "string",
+      "description": "Legacy single linked plan goal ID"
+    },
+    "plan_goal_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Linked plan goal IDs (one or more)"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the impact"
+    },
+    "severity": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Severity 1-5"
+    },
+    "impact_level": {
+      "type": "string",
+      "enum": [
+        "minor",
+        "moderate",
+        "major"
+      ],
+      "description": "Overall impact level"
+    },
+    "impact_types": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Selected impact categories"
+    },
+    "description": {
+      "type": "string",
+      "description": "Legacy or extra description"
+    },
+    "functional_impact": {
+      "type": "string",
+      "description": "Functional impact description"
+    },
+    "support_required": {
+      "type": "string",
+      "enum": [
+        "no_additional",
+        "parent_carer",
+        "therapy_worker",
+        "school_intervention",
+        "medical_support"
+      ],
+      "description": "Type of support required"
+    },
+    "environment": {
+      "type": "string",
+      "enum": [
+        "morning",
+        "afternoon",
+        "evening",
+        "night"
+      ],
+      "description": "Time of day"
+    },
+    "duration": {
+      "type": "string",
+      "description": "How long it lasted"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes"
+    },
+    "archived": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this entry is archived"
+    },
+    "archive_label": {
+      "type": "string",
+      "description": "Optional label for the archive period (e.g. 'Term 1 2024')"
+    }
+  },
+  "required": [
+    "participant_id",
+    "date",
+    "severity"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

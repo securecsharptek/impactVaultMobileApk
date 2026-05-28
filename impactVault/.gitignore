@@ -1,0 +1,115 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build outputs
+dist/
+dist-ssr/
+build/
+*.tsbuildinfo
+
+# Vite
+.vite/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# IDE and Editor
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*.sw?
+*.sublime-project
+*.sublime-workspace
+*.iml
+.DS_Store
+Thumbs.db
+
+# OS-specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Visual Studio Code
+.vscode
+*.code-workspace
+
+# IntelliJ
+*.iml
+*.iws
+*.ipr
+
+# Local
+*.local
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Electron
+out/
+
+# Capacitor files
+/android/app/capacitor-cordova-android-plugins/
+/ios/
+dist/
+www/
+
+# Android
+android/.gradle/
+android/build/
+android/captures/
+android/local.properties
+android/gradlew.bat.bak
+android/**/build/
+android/**/.gradle/
+android/**/*.apk
+android/**/*.aar
+android/**/*.ap_
+android/**/*.aab
+android/**/local.properties
+android/.DS_Store
+android/**/.DS_Store
+android/app/release/
+android/gradle/wrapper/*.jar
+
+# Gradle
+.gradle/
+gradle.properties.bak
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Misc
+*.bak
+*.tmp
+*.temp
+.cache/

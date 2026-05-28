@@ -1,0 +1,104 @@
+{
+  "name": "EvidenceItem",
+  "type": "object",
+  "properties": {
+    "participant_id": {
+      "type": "string",
+      "description": "Linked participant ID"
+    },
+    "plan_goal_id": {
+      "type": "string",
+      "description": "Optional linked plan goal ID"
+    },
+    "daily_log_id": {
+      "type": "string",
+      "description": "Optional linked daily log ID"
+    },
+    "upload_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date uploaded"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the evidence"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "school",
+        "therapy",
+        "medical",
+        "behaviour",
+        "other"
+      ],
+      "description": "Type of evidence"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL of uploaded file"
+    },
+    "file_name": {
+      "type": "string",
+      "description": "Original file name"
+    }
+  },
+  "required": [
+    "participant_id",
+    "upload_date",
+    "description",
+    "type"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "name": "ParticipantProfile",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Full name of the participant"
+    },
+    "dob": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of birth"
+    },
+    "diagnoses": {
+      "type": "string",
+      "description": "Diagnoses or conditions"
+    },
+    "carer_name": {
+      "type": "string",
+      "description": "Name of the primary carer"
+    },
+    "carer_email": {
+      "type": "string",
+      "description": "Email address of the primary carer"
+    },
+    "plan_start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "NDIS plan start date"
+    },
+    "plan_end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "NDIS plan end date"
+    },
+    "no_plan": {
+      "type": "boolean",
+      "description": "True if participant has no current plan",
+      "default": false
+    },
+    "plan_document_url": {
+      "type": "string",
+      "description": "URL of the uploaded support plan document"
+    },
+    "plan_document_name": {
+      "type": "string",
+      "description": "Original file name of the support plan document"
+    },
+    "plan_history": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Archived previous plan periods with their documents"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Optional additional description or notes about the participant"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "update": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

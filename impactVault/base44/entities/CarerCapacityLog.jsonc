@@ -1,0 +1,100 @@
+{
+  "name": "CarerCapacityLog",
+  "type": "object",
+  "properties": {
+    "carer_name": {
+      "type": "string",
+      "description": "Name of the carer"
+    },
+    "participant_id": {
+      "type": "string",
+      "description": "Linked participant ID"
+    },
+    "plan_goal_id": {
+      "type": "string",
+      "description": "Optional linked plan goal ID"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of entry"
+    },
+    "fatigue_level": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Fatigue level 1-5"
+    },
+    "emotional_load": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Emotional load 1-5"
+    },
+    "sleep_impact": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Sleep impact 1-5"
+    },
+    "administrative_load": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Admin load 1-5"
+    },
+    "carer_plans_impacted": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Types of carer plans impacted"
+    },
+    "additional_support_needed": {
+      "type": "string",
+      "enum": [
+        "No",
+        "Informal support",
+        "Professional support"
+      ],
+      "description": "Whether carer needed additional support"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes"
+    },
+    "archived": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this entry is archived"
+    },
+    "archive_label": {
+      "type": "string",
+      "description": "Optional label for the archive period"
+    }
+  },
+  "required": [
+    "carer_name",
+    "date",
+    "fatigue_level",
+    "emotional_load",
+    "sleep_impact",
+    "administrative_load",
+    "carer_plans_impacted",
+    "additional_support_needed"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "update": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

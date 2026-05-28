@@ -1,0 +1,64 @@
+{
+  "name": "EmailLog",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Recipient email address"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Recipient display name"
+    },
+    "template_key": {
+      "type": "string",
+      "description": "Email template identifier"
+    },
+    "scheduled_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date this email should be sent"
+    },
+    "plan_name": {
+      "type": "string",
+      "description": "Plan the user purchased"
+    },
+    "sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the email has been sent"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the email was sent"
+    }
+  },
+  "required": [
+    "user_email",
+    "template_key",
+    "scheduled_date"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

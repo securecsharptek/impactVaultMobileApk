@@ -1,0 +1,89 @@
+{
+  "name": "QuickEntry",
+  "type": "object",
+  "properties": {
+    "participant_id": {
+      "type": "string",
+      "description": "Linked participant ID"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of entry"
+    },
+    "time": {
+      "type": "string",
+      "description": "Time of entry (HH:MM)"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "behaviour",
+        "sleep",
+        "school",
+        "therapy",
+        "mood",
+        "health",
+        "other"
+      ],
+      "description": "Entry category"
+    },
+    "note": {
+      "type": "string",
+      "description": "Short note about the entry"
+    },
+    "trigger": {
+      "type": "string",
+      "enum": [
+        "transition",
+        "fatigue",
+        "noise",
+        "hunger",
+        "change_of_routine",
+        "social_interaction",
+        "other",
+        ""
+      ],
+      "description": "Optional trigger"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Optional tags"
+    },
+    "evidence_url": {
+      "type": "string",
+      "description": "Optional uploaded evidence URL"
+    },
+    "evidence_name": {
+      "type": "string",
+      "description": "Evidence file name"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Optional additional description for the entry"
+    }
+  },
+  "required": [
+    "participant_id",
+    "date",
+    "category"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "update": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}
