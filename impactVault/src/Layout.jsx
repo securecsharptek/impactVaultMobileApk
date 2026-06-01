@@ -116,10 +116,10 @@ export default function Layout({ children, currentPageName }) {
           return;
         }
         if (user?.role === 'admin') return;
-        // TODO: Enable Pricing page redirect after plan selection flow is implemented
-        // if (!user?.plan && currentPageName !== 'Pricing' && !isCheckoutReturn) {
-        //   navigate(createPageUrl('Pricing'));
-        // }
+        // Enable plan selection for users without a plan
+        if (!user?.plan && currentPageName !== 'Pricing' && !isCheckoutReturn) {
+          navigate(createPageUrl('Pricing'));
+        }
       } catch (e) {
         if (currentPageName !== 'Pricing') {
           navigateToLogin(isCheckoutReturn ? window.location.href : undefined);

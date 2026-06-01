@@ -17,6 +17,38 @@ export const isNativeRuntime = () => Capacitor.isNativePlatform();
 
 export const getNativeAuthRedirectUrl = () => `${getAuthScheme()}://${getAuthHost()}`;
 
+/**
+ * Get the platform type for in-app purchases
+ * @returns {string|null} 'ios', 'android', or null if not native
+ */
+export const getPlatform = () => {
+  if (!isNativeRuntime()) return null;
+  const userAgent = navigator.userAgent.toLowerCase();
+  if (userAgent.includes('android')) return 'android';
+  if (userAgent.includes('iphone') || userAgent.includes('ipad')) return 'ios';
+  return null;
+};
+
+/**
+ * Get receipt/transaction data from native IAP plugin
+ * This will be implemented when InAppPurchase plugin is integrated
+ * @returns {Promise<{purchaseToken?: string, transactionId?: string}>}
+ */
+export const getNativeReceipt = async () => {
+  if (!isNativeRuntime()) {
+    throw new Error('getNativeReceipt is only available on native platforms');
+  }
+  
+  // TODO: Implement when InAppPurchase Capacitor plugin is integrated
+  // Example implementation:
+  // const { InAppPurchase } = window;
+  // if (!InAppPurchase) throw new Error('InAppPurchase plugin not available');
+  // return await InAppPurchase.getReceipt();
+  
+  console.warn('[Purchase] getNativeReceipt stub - awaiting IAP plugin integration');
+  return {};
+};
+
 const parseAuthParams = (incomingUrl) => {
   const parsedUrl = new URL(incomingUrl);
   const params = new URLSearchParams(parsedUrl.search);

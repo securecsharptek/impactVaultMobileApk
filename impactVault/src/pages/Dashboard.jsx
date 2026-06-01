@@ -8,6 +8,7 @@ import SeverityBadge from "../components/shared/SeverityBadge";
 import QuickCapture from "../components/dashboard/QuickCapture";
 import InsightsPreviewCard from "../components/dashboard/InsightsPreviewCard";
 import QuickCaptureModal from "../components/QuickCaptureModal";
+import CheckoutUpsellModal from "../components/CheckoutUpsellModal";
 import RealWorldImpactCard from "../components/dashboard/RealWorldImpactCard";
 import DailyInsightCard from "../components/dashboard/DailyInsightCard";
 import SeverityProfile from "../components/dashboard/SeverityProfile";
@@ -15,6 +16,22 @@ import TodayTimeline from "../components/dashboard/TodayTimeline";
 import EvidenceStrengthCard from "../components/dashboard/EvidenceStrengthCard";
 import ImprovedQuickCapture from "../components/dashboard/ImprovedQuickCapture";
 import usePullToRefresh from "../hooks/usePullToRefresh";
+import { isNativeRuntime, getPlatform } from "../lib/native-auth";
+
+const CORE_PLANS = [
+  {
+    type: 'individual',
+    name: 'Impact Vault Core',
+    founding: { priceId: 'price_1TLETKDZJD79Rb243HE1dH06', name: 'Impact Vault Core Founding' },
+    standard: { priceId: 'price_1TLETKDZJD79Rb243HE1dH06', name: 'Impact Vault Core' },
+  },
+  {
+    type: 'family',
+    name: 'Impact Vault Family',
+    founding: { priceId: 'price_1TLEVjDZJD79Rb24ntzxhpCi', name: 'Impact Vault Family Founding' },
+    standard: { priceId: 'price_1TLEVjDZJD79Rb24ntzxhpCi', name: 'Impact Vault Family' },
+  },
+];
 
 export default function Dashboard() {
   const [participants, setParticipants] = useState([]);
@@ -25,6 +42,8 @@ export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showQuickCapture, setShowQuickCapture] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const load = async () => {
     try {
@@ -73,6 +92,60 @@ export default function Dashboard() {
       load();
     }
   }, []);
+
+  // Show checkout modal for users without a plan on mobile
+  useEffect(() => {
+    if (user && !user.plan && isNativeRuntime()) {
+      setShowCheckout(true);
+    }
+  }, [user]);
+
+  const handleCheckout = async (checkoutData) => {
+    setCheckoutLoading(true);
+    try {
+      if (!isNativeRuntime()) {
+        // Web: redirect to Stripe
+        const response = await base44.functions.invoke('createCheckoutSession', {
+          priceId: checkoutData.priceId,
+          planName: checkoutData.planName,
+        });
+        if (response.data?.url) {
+          window.location.href = response.data.url;
+        }
+        return;
+      }
+
+      // Mobile: Verify IAP purchase
+      const platform = getPlatform();
+      if (!platform) {
+        throw new Error('Could not detect platform');
+      }
+
+      // For now, show alert that IAP flow needs native implementation
+      // This will be replaced with actual IAP SDK calls
+      console.log('[Purchase] Platform:', platform);
+      console.log('[Purchase] Price ID:', checkoutData.priceId);
+      console.log('[Purchase] Plan Name:', checkoutData.planName);
+
+      alert('In-app purchase flow will launch in next update. Using test mode for now.');
+      
+      // For testing, you can manually verify with:
+      // const result = await base44.functions.invoke('verifyInAppPurchase', {
+      //   platform,
+      //   purchaseToken: receipt.purchaseToken,
+      //   productId: checkoutData.priceId,
+      // });
+      // if (result.success) {
+      //   await load();
+      //   setShowCheckout(false);
+      // }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert(`Checkout failed: ${error.message}`);
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
 
 
 
@@ -343,6 +416,18 @@ export default function Dashboard() {
         participants={participants}
         onSuccess={() => load()}
       />
+
+      {/* Checkout Upsell Modal */}
+      {user && !user.plan && (
+        <CheckoutUpsellModal
+          isOpen={showCheckout}
+          onClose={() => setShowCheckout(false)}
+          corePlan={CORE_PLANS[0]}
+          foundingActive={false}
+          onCheckout={handleCheckout}
+          loading={checkoutLoading}
+        />
+      )}
     </div>
   );
 }
