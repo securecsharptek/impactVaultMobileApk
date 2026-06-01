@@ -4,7 +4,7 @@ import { App as CapacitorApp } from '@capacitor/app';
 import { getLoginUrl } from '@base44/sdk/dist/utils/auth-utils';
 import { appParams } from '@/lib/app-params';
 
-const DEFAULT_NATIVE_AUTH_SCHEME = 'com.vault.impactVault';
+const DEFAULT_NATIVE_AUTH_SCHEME = 'com.impactvault.app';
 const DEFAULT_NATIVE_AUTH_HOST = 'auth';
 
 const getAuthScheme = () => import.meta.env.VITE_NATIVE_AUTH_SCHEME || DEFAULT_NATIVE_AUTH_SCHEME;
