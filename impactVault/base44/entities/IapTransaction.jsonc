@@ -1,0 +1,108 @@
+{
+  "name": "IapTransaction",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email of the user who initiated the purchase"
+    },
+    "platform": {
+      "type": "string",
+      "enum": [
+        "ios",
+        "android"
+      ],
+      "description": "Store platform"
+    },
+    "product_id": {
+      "type": "string",
+      "description": "Store product ID / SKU"
+    },
+    "transaction_id": {
+      "type": "string",
+      "description": "Unique transaction ID from the store"
+    },
+    "original_transaction_id": {
+      "type": "string",
+      "description": "Original transaction/group identifier"
+    },
+    "purchase_token_hash": {
+      "type": "string",
+      "description": "SHA-256 hash of Android purchase token"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "expired",
+        "cancelled",
+        "refunded",
+        "in_grace_period",
+        "on_hold",
+        "unknown"
+      ],
+      "description": "Current interpreted entitlement status"
+    },
+    "plan": {
+      "type": "string",
+      "description": "Resolved app plan name"
+    },
+    "insights_plan": {
+      "type": "boolean",
+      "description": "Whether this transaction grants Insights"
+    },
+    "profile_limit": {
+      "type": "number",
+      "description": "Profile limit granted by this purchase"
+    },
+    "purchased_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Purchase timestamp"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Expiry timestamp if subscription-based"
+    },
+    "last_verified_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last successful server verification timestamp"
+    },
+    "raw_store_state": {
+      "type": "string",
+      "description": "Store-native subscription/purchase state"
+    }
+  },
+  "required": [
+    "user_email",
+    "platform",
+    "product_id",
+    "transaction_id",
+    "status",
+    "last_verified_at"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

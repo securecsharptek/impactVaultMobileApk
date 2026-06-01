@@ -149,6 +149,65 @@ export const authService = {
   },
 
   /**
+   * Exchange Firebase ID token for Base44 session token
+   * @param {string} idToken - Firebase ID token from Google sign-in
+   * @param {string} provider - OAuth provider (default: 'google')
+   * @returns {Promise<{token: string, user: object}>}
+   */
+  async authenticateWithFirebaseToken(idToken, provider = 'google') {
+    try {
+      if (!idToken) {
+        throw new Error('No ID token provided');
+      }
+
+      console.log('[authService] Exchanging Firebase token for Base44 token');
+      
+      const client = createAuthClient();
+      const response = await client.post('/auth/oauth/firebase-callback', {
+        id_token: idToken,
+        provider: provider
+      });
+
+      // Handle response based on Base44 API structure
+      if (response.token || response.access_token) {
+        const token = response.token || response.access_token;
+        // Store token in localStorage
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.setItem('base44_access_token', token);
+          window.localStorage.setItem('token', token);
+        }
+
+        console.log('[authService] Firebase token exchanged successfully');
+        
+        return {
+          success: true,
+          token: token,
+          user: response.user || response.data?.user
+        };
+      } else {
+        throw new Error('No token received from Firebase authentication');
+      }
+    } catch (error) {
+      console.error('[authService] Firebase token exchange error:', error);
+
+      // Handle specific error responses
+      let errorMessage = 'Firebase authentication failed';
+      if (error.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      throw {
+        success: false,
+        message: errorMessage,
+        status: error.status,
+        error
+      };
+    }
+  },
+
+  /**
    * Resend OTP to email
    * @param {string} email - User email
    * @returns {Promise<{success: boolean, message: string}>}

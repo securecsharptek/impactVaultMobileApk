@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { authService } from '@/api/auth-service';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
-import { isNativeRuntime, openNativeGoogleLogin, getNativeAuthRedirectUrl } from '@/lib/native-auth';
+import { signInWithGoogle, initializeGoogleAuth } from '@/lib/google-auth';
 import { Mail, Lock, User, Eye, EyeOff, Loader, ArrowLeft } from 'lucide-react';
 
 const MobileLogin = () => {
@@ -332,26 +332,61 @@ const MobileLogin = () => {
 
   const handleGoogleOAuth = async () => {
     setError('');
+    setSuccess('');
     setIsLoading(true);
 
     try {
-      if (isNativeRuntime()) {
-        const callbackUrl = getNativeAuthRedirectUrl();
-        const googleOAuthUrl = authService.getOAuthUrlWithRedirect('google', callbackUrl);
-        
-        console.log('[Mobile Login] Opening Google OAuth with redirect:', callbackUrl);
-        
-        await openNativeGoogleLogin(googleOAuthUrl, () => {
-          console.log('[Mobile Login] OAuth callback received, refreshing auth state');
+      // Initialize Firebase if not already done
+      await initializeGoogleAuth();
+      console.log('[MobileLogin] Firebase Google Auth initialized');
+
+      // Sign in with Google (handles both native and web)
+      const signInResult = await signInWithGoogle();
+      console.log('[MobileLogin] Google sign-in successful');
+
+      if (!signInResult.idToken) {
+        throw new Error('No ID token received from Google sign-in');
+      }
+
+      // Exchange Firebase token for Base44 session token
+      console.log('[MobileLogin] Exchanging Firebase token for Base44 session');
+      const authResult = await authService.authenticateWithFirebaseToken(
+        signInResult.idToken,
+        'google'
+      );
+
+      if (authResult.success && authResult.token) {
+        // Verify token was stored
+        const token = window.localStorage.getItem('base44_access_token');
+        console.log('[MobileLogin] Base44 token stored:', !!token);
+
+        if (token) {
+          appParams.token = token;
+          // Try to set token in base44 if possible
+          try {
+            base44.auth.setToken?.(token);
+          } catch (e) {
+            // Method might not exist, continue anyway
+          }
+        }
+
+        setSuccess('Google sign-in successful! Redirecting...');
+
+        // Set flag to navigate once authentication is confirmed
+        setShouldNavigate(true);
+
+        // Trigger auth state check
+        setTimeout(() => {
+          console.log('[MobileLogin] Triggering auth check after Google sign-in');
           checkAppState();
-        });
+        }, 200);
       } else {
-        const oauthUrl = authService.getOAuthUrl('google', window.location.href);
-        window.location.href = oauthUrl;
+        throw new Error('Failed to authenticate with Base44');
       }
     } catch (err) {
-      console.error('OAuth error:', err);
-      setError('Google login failed. Please try again.');
+      console.error('[MobileLogin] Google OAuth error:', err);
+      const errorMessage = err.message || err.error?.message || 'Google sign-in failed. Please try again.';
+      setError(errorMessage);
       setIsLoading(false);
     }
   };
