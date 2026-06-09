@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -6,13 +8,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 
 const categoryConfig = {
-  behaviour: { emoji: "⚡", label: "Regulation", impactType: "Behaviour Escalation" },
-  sleep: { emoji: "🌙", label: "Sleep", impactType: "Fatigue / Shutdown" },
-  school: { emoji: "🏫", label: "School", impactType: "School Attendance Impact" },
-  therapy: { emoji: "💬", label: "Therapy", impactType: "Therapy Disruption" },
-  mood: { emoji: "❤️", label: "Emotional Impact", impactType: "Emotional Regulation Difficulty" },
-  health: { emoji: "🏥", label: "Health", impactType: "Medical Episode" },
-  other: { emoji: "➕", label: "Other", impactType: "Other" },
+  behaviour: { emoji: "⚡", label: "Regulation", desc: "Capture dysregulation, overwhelm, or recovery", impactType: "Behaviour Escalation" },
+  sleep: { emoji: "🌙", label: "Sleep", desc: "Track sleep, fatigue, and recovery", impactType: "Fatigue / Shutdown" },
+  school: { emoji: "🏫", label: "School", desc: "Participation, attendance, or recovery", impactType: "School Attendance Impact" },
+  therapy: { emoji: "💬", label: "Therapy", desc: "Therapy participation or support needs", impactType: "Therapy Disruption" },
+  mood: { emoji: "❤️", label: "Emotional Impact", desc: "Capture regulation, stress, or emotional impact", impactType: "Emotional Regulation Difficulty" },
+  health: { emoji: "🏥", label: "Health", desc: "Medical episodes or health-related impact", impactType: "Medical Episode" },
+  other: { emoji: "➕", label: "Other", desc: "Daily functioning or support need", impactType: "Other" },
 };
 
 const TIME_OPTIONS = [
@@ -30,7 +32,8 @@ const SEVERITY_COLORS = {
   5: "bg-red-100 text-red-800 border-red-300",
 };
 
-export default function QuickCaptureModal({ isOpen, onClose, participants, onSuccess }) {
+export default function QuickCaptureModal({ isOpen, onClose, participants, onSuccess, initialCategory = "" }) {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [selectedPersonId, setSelectedPersonId] = useState("");
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -41,6 +44,21 @@ export default function QuickCaptureModal({ isOpen, onClose, participants, onSuc
   const [goals, setGoals] = useState([]);
   const [availableGoals, setAvailableGoals] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Seed category whenever the modal opens with a preselected card.
+  useEffect(() => {
+    if (isOpen) {
+      setCategory(initialCategory || "");
+      setStep(1);
+      setSelectedPersonId("");
+      setDate(format(new Date(), "yyyy-MM-dd"));
+      setTimeOfDay("");
+      setSeverity(3);
+      setDescription("");
+      setGoals([]);
+      setAvailableGoals([]);
+    }
+  }, [isOpen, initialCategory]);
 
   const handleOpenChange = (open) => {
     if (!open) {
@@ -68,7 +86,8 @@ export default function QuickCaptureModal({ isOpen, onClose, participants, onSuc
   const handlePersonSelect = (personId) => {
     setSelectedPersonId(personId);
     loadGoals(personId);
-    setStep(2);
+    // If a card was preselected, skip the category-pick step entirely.
+    setStep(category ? 3 : 2);
   };
 
   const handleCategorySelect = (cat) => {
@@ -97,6 +116,8 @@ export default function QuickCaptureModal({ isOpen, onClose, participants, onSuc
 
       onSuccess?.();
       handleOpenChange(false);
+      // Take the user to the Impact Log so they can see the entry was saved.
+      navigate(createPageUrl("ImpactLog"));
     } catch (error) {
       console.error('Error creating impact log entry:', error);
       alert('Failed to save entry. Please try again.');
@@ -107,7 +128,7 @@ export default function QuickCaptureModal({ isOpen, onClose, participants, onSuc
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto bg-white text-stone-800 border-stone-200">
         <DialogHeader>
           <DialogTitle>Quick Capture</DialogTitle>
         </DialogHeader>
@@ -153,6 +174,28 @@ export default function QuickCaptureModal({ isOpen, onClose, participants, onSuc
 
           {step === 3 && (
             <>
+              {category && categoryConfig[category] && (
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 border border-amber-200">
+                  <div className="w-11 h-11 rounded-xl bg-white border border-amber-200 flex items-center justify-center text-2xl shrink-0">
+                    {categoryConfig[category].emoji}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-amber-900 leading-tight">
+                      {categoryConfig[category].label}
+                    </p>
+                    <p className="text-xs text-amber-800/80 mt-0.5 leading-snug">
+                      {categoryConfig[category].desc}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="text-[11px] font-medium text-amber-700 hover:text-amber-900 hover:underline shrink-0 mt-0.5"
+                  >
+                    Change
+                  </button>
+                </div>
+              )}
               <div>
                 <label className="text-sm font-medium text-stone-700 mb-2 block">Date *</label>
                 <input
@@ -234,7 +277,7 @@ export default function QuickCaptureModal({ isOpen, onClose, participants, onSuc
               )}
 
               <div className="flex gap-2 pt-2">
-                <Button variant="outline" onClick={() => setStep(2)} className="flex-1">
+                <Button variant="outline" onClick={() => setStep(initialCategory ? 1 : 2)} className="flex-1">
                   Back
                 </Button>
                 <Button

@@ -5,6 +5,7 @@ import HelpButton from "../components/shared/HelpButton";
 import PageHeader from "../components/shared/PageHeader";
 import EmptyState from "../components/shared/EmptyState";
 import { usePlanLimit, PlanLimitWarning } from "../components/PlanEnforcement";
+import { todayLocal } from "@/utils";
 
 const EMPTY = { name: "", dob: "", diagnoses: "", carer_name: "", carer_email: "", plan_start_date: "", plan_end_date: "", no_plan: false, plan_document_url: "", plan_document_name: "", plan_history: [] };
 
@@ -49,7 +50,7 @@ export default function Participants() {
         plan_end_date: form.plan_end_date,
         plan_document_url: form.plan_document_url,
         plan_document_name: form.plan_document_name,
-        archived_at: new Date().toISOString().slice(0, 10),
+        archived_at: todayLocal(),
       });
     }
     setForm(f => ({ ...f, plan_start_date: "", plan_end_date: "", plan_document_url: "", plan_document_name: "", plan_history: history }));
@@ -93,13 +94,16 @@ export default function Participants() {
 
       {/* Form modal */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4 bg-black/30">
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-5 border-b border-stone-100">
+        <div
+          className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-4 bg-black/30"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 5.5rem)', paddingTop: 'max(env(safe-area-inset-top), 1rem)' }}
+        >
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl flex flex-col max-h-full">
+            <div className="flex items-center justify-between p-5 border-b border-stone-100 shrink-0">
               <h2 className="font-semibold text-stone-800">{editing ? "Edit Profile" : "New Person Profile"}</h2>
               <button onClick={() => setShowForm(false)}><X className="w-5 h-5 text-stone-400" /></button>
             </div>
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-4 overflow-y-auto flex-1">
               <Field label="Full Name *" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
               <Field label="Date of Birth" type="date" value={form.dob} onChange={(v) => setForm({ ...form, dob: v })} />
               <Textarea label="Diagnoses / Conditions" value={form.diagnoses} onChange={(v) => setForm({ ...form, diagnoses: v })} rows={2} />
@@ -184,7 +188,7 @@ export default function Participants() {
                 )}
               </div>
             </div>
-            <div className="flex gap-3 p-5 border-t border-stone-100">
+            <div className="flex gap-3 p-5 border-t border-stone-100 shrink-0 bg-white rounded-b-2xl">
               <button onClick={() => setShowForm(false)} className="flex-1 py-2.5 border border-stone-200 rounded-xl text-sm text-stone-600 hover:bg-stone-50">Cancel</button>
               <button onClick={save} disabled={saving} className="flex-1 py-2.5 bg-amber-700 text-white rounded-xl text-sm hover:bg-amber-800 disabled:opacity-60">
                 {saving ? "Saving…" : editing ? "Save Changes" : "Create Profile"}

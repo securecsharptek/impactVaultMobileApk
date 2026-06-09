@@ -6,6 +6,7 @@ import { Sparkles, Lock, TrendingUp, TrendingDown, Minus, Zap, Clock, AlertTrian
 import { format, subDays, parseISO } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import PageHeader from "../components/shared/PageHeader";
+import { appParams } from "@/lib/app-params";
 
 const TIME_BLOCKS = [
   { key: "morning", label: "Morning", hours: "6am–12pm" },
@@ -146,7 +147,7 @@ export default function Insights() {
   const [loading, setLoading] = useState(true);
   const [filterPid, setFilterPid] = useState("");
 
-  const hasInsights = user?.insights_plan === true;
+  const hasInsights = appParams.bypassPaywall || user?.insights_plan === true;
 
   useEffect(() => {
     base44.auth.me().then((u) => {

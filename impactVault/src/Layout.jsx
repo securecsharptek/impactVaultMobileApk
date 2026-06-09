@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
+import { appParams } from "@/lib/app-params";
 import { authService } from "@/api/auth-service";
 import { isNativeRuntime } from "@/lib/native-auth";
 import {
@@ -117,7 +118,7 @@ export default function Layout({ children, currentPageName }) {
         }
         if (user?.role === 'admin') return;
         // Enable plan selection for users without a plan
-        if (!user?.plan && currentPageName !== 'Pricing' && !isCheckoutReturn) {
+        if (!appParams.bypassPaywall && !user?.plan && currentPageName !== 'Pricing' && !isCheckoutReturn) {
           navigate(createPageUrl('Pricing'));
         }
       } catch (e) {
@@ -177,9 +178,9 @@ export default function Layout({ children, currentPageName }) {
       {/* Top bar */}
       <header
         className="bg-white border-b border-stone-200 sticky top-0 z-40"
-        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+        style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)' }}
       >
-        <div className="max-w-5xl mx-auto px-3 md:px-4 h-14 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-5 md:px-6 h-14 flex items-center justify-between">
           {/* Left: back button (mobile) or logo */}
           <div className="flex items-center gap-2">
             {location.pathname !== '/' && (
@@ -348,10 +349,10 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Page content */}
       <main
-        className="max-w-5xl mx-auto px-3 md:px-4 py-4 md:py-6 overflow-y-auto flex-1"
+        className="max-w-5xl mx-auto px-5 md:px-6 py-6 md:py-8 overflow-y-auto flex-1"
         style={{ 
-          paddingBottom: 'calc(env(safe-area-inset-bottom) + 5rem)',
-          maxHeight: 'calc(100vh - 56px - env(safe-area-inset-bottom) - 80px)',
+          paddingBottom: 'calc(max(env(safe-area-inset-bottom), 12px) + 7rem)',
+          maxHeight: 'calc(100vh - 56px - max(env(safe-area-inset-top), 16px) - max(env(safe-area-inset-bottom), 12px) - 80px)',
           WebkitOverflowScrolling: 'touch'
         }}
       >
@@ -381,7 +382,7 @@ export default function Layout({ children, currentPageName }) {
       {/* Bottom tab bar — mobile only */}
       <nav
         className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-stone-200 flex md:hidden"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 12px)', paddingTop: '4px' }}
       >
         {[
           { label: 'Home', page: 'Dashboard', icon: LayoutDashboard },

@@ -7,6 +7,8 @@ import { format, parseISO } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import PageHeader from "../components/shared/PageHeader";
 import { jsPDF } from "jspdf";
+import { appParams } from "@/lib/app-params";
+import { toLocalDateString } from "@/utils";
 
 const ENV_LABELS = { home: "Home", school: "School", community: "Community", other: "Other" };
 const SUPPORT_LABELS = {
@@ -271,13 +273,13 @@ export default function ReviewReport() {
 
     // --- INSIGHTS ANALYTICS (only if user has insights plan) ---
     const insightsHTML = (() => {
-      if (!data?.user?.insights_plan) return "";
+      if (!appParams.bypassPaywall && !data?.user?.insights_plan) return "";
 
       // Filter entries from last 30 days and previous 30 days
       const now = new Date();
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
-      const dateStr = (d) => d.toISOString().split('T')[0];
+      const dateStr = (d) => toLocalDateString(d);
 
       const last30 = impacts.filter((i) => i.date >= dateStr(thirtyDaysAgo));
       const prev30 = impacts.filter((i) => i.date >= dateStr(sixtyDaysAgo) && i.date < dateStr(thirtyDaysAgo));
@@ -738,12 +740,12 @@ export default function ReviewReport() {
 
           {/* Patterns & Insights */}
           {(() => {
-            if (!data.user?.insights_plan) return null;
+            if (!appParams.bypassPaywall && !data.user?.insights_plan) return null;
 
             const now = new Date();
             const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
             const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
-            const dateStr = (d) => d.toISOString().split('T')[0];
+            const dateStr = (d) => toLocalDateString(d);
 
             const last30 = data.impacts.filter((i) => i.date >= dateStr(thirtyDaysAgo));
             const prev30 = data.impacts.filter((i) => i.date >= dateStr(sixtyDaysAgo) && i.date < dateStr(thirtyDaysAgo));

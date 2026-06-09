@@ -4,8 +4,9 @@ import { Plus, FolderOpen, X, Trash2, ExternalLink, Upload } from "lucide-react"
 import HelpButton from "../components/shared/HelpButton";
 import PageHeader from "../components/shared/PageHeader";
 import EmptyState from "../components/shared/EmptyState";
+import { todayLocal } from "@/utils";
 
-const EMPTY = { participant_id: "", plan_goal_id: "", daily_log_id: "", upload_date: new Date().toISOString().slice(0, 10), description: "", type: "other", file_url: "", file_name: "" };
+const EMPTY = { participant_id: "", plan_goal_id: "", daily_log_id: "", upload_date: todayLocal(), description: "", type: "other", file_url: "", file_name: "" };
 const TYPE_COLORS = { school: "bg-purple-100 text-purple-700", therapy: "bg-blue-100 text-blue-700", medical: "bg-red-100 text-red-700", behaviour: "bg-orange-100 text-orange-700", other: "bg-stone-100 text-stone-600" };
 const TYPE_LABELS = { school: "School", therapy: "Therapy", medical: "Medical", behaviour: "Functional Impact", other: "Other" };
 

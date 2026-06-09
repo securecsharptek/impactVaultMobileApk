@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
-import { createPageUrl } from "@/utils";
+import { createPageUrl, todayLocal } from "@/utils";
 
 export default function TodayTimeline({ impacts }) {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayLocal();
   const todayImpacts = impacts.filter(i => i.date === today);
 
   if (todayImpacts.length === 0) return null;

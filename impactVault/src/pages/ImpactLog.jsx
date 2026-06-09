@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Plus, BookOpen, X, Trash2, Upload, Paperclip, Pencil, LayoutGrid, AlignJustify, GitCommit, Archive, RefreshCw } from "lucide-react";
+import { todayLocal } from "@/utils";
 import HelpButton from "../components/shared/HelpButton";
 import PageHeader from "../components/shared/PageHeader";
 import EmptyState from "../components/shared/EmptyState";
@@ -36,7 +37,7 @@ const SUPPORT_REQUIRED_OPTIONS = [
   { value: "medical_support", label: "Health or medical support required" },
 ];
 
-const EMPTY = { participant_id: "", plan_goal_id: "", plan_goal_ids: [], date: new Date().toISOString().slice(0, 10), severity: 3, impact_level: "", impact_types: [], description: "", functional_impact: "", support_required: "no_additional", environment: "", duration: "", notes: "", reported_by: "" };
+const EMPTY = { participant_id: "", plan_goal_id: "", plan_goal_ids: [], date: todayLocal(), severity: 3, impact_level: "", impact_types: [], description: "", functional_impact: "", support_required: "no_additional", environment: "", duration: "", notes: "", reported_by: "" };
 
 const REPORTED_BY_OPTIONS = [
   "School",
@@ -100,7 +101,7 @@ export default function ImpactLog() {
       participant_id: log.participant_id || "",
       plan_goal_id: log.plan_goal_id || "",
       plan_goal_ids: log.plan_goal_ids || [],
-      date: log.date || new Date().toISOString().slice(0, 10),
+      date: log.date || todayLocal(),
       severity: log.severity || 3,
       impact_level: log.impact_level || "",
       impact_types: log.impact_types || [],
@@ -146,8 +147,9 @@ export default function ImpactLog() {
 
   const save = async () => {
     if (!form.participant_id || !form.functional_impact.trim() || !form.environment || !form.reported_by) return;
-    if (evidenceForm.file_url && !evidenceForm.description.trim()) {
-      if (!confirm("You have uploaded a file but haven't clicked 'Add' to attach it. Continue without saving this file?")) return;
+    const hasPendingEvidence = !!(evidenceForm.description.trim() || evidenceForm.file_url);
+    if (hasPendingEvidence) {
+      if (!confirm("You have evidence that hasn't been attached yet — tap 'Add' first to include it. Continue without it?")) return;
     }
     setSaving(true);
 
@@ -445,18 +447,18 @@ export default function ImpactLog() {
                 )}
                 {/* Evidence entry row */}
                 <div className="space-y-2 bg-stone-50 rounded-xl p-3">
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 min-w-0">
                     <input
                       type="text"
                       placeholder="Description…"
                       value={evidenceForm.description}
                       onChange={(e) => setEvidenceForm({ ...evidenceForm, description: e.target.value })}
-                      className="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-300 bg-white"
+                      className="flex-1 min-w-0 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-300 bg-white"
                     />
                     <select
                        value={evidenceForm.type}
                        onChange={(e) => setEvidenceForm({ ...evidenceForm, type: e.target.value })}
-                       className="border border-stone-200 rounded-lg px-2 py-2 text-sm text-stone-700 bg-white"
+                       className="w-28 shrink-0 border border-stone-200 rounded-lg pl-2 pr-1 py-2 text-sm text-stone-700 bg-white truncate"
                      >
                        {EVIDENCE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                      </select>
@@ -467,15 +469,31 @@ export default function ImpactLog() {
                       <span className="truncate text-xs">{uploading ? "Uploading…" : evidenceForm.file_name || "Upload file"}</span>
                       <input type="file" className="hidden" onChange={handleEvidenceFile} accept="image/*,video/*,.pdf,.doc,.docx" />
                     </label>
-                    <button
-                      type="button"
-                      onClick={addEvidence}
-                      disabled={!evidenceForm.description.trim() && !evidenceForm.file_url}
-                      className="px-3 py-2 bg-teal-600 text-white text-xs rounded-lg hover:bg-teal-700 disabled:opacity-40 shrink-0"
-                    >
-                      Add
-                    </button>
+                    {(() => {
+                      const hasPending = !!(evidenceForm.description.trim() || evidenceForm.file_url);
+                      return (
+                        <button
+                          type="button"
+                          onClick={addEvidence}
+                          disabled={!hasPending}
+                          aria-label="Attach this evidence to the entry"
+                          className={`px-3 py-2 bg-teal-600 text-white text-xs font-semibold rounded-lg hover:bg-teal-700 disabled:opacity-40 shrink-0 transition-shadow ${hasPending ? "ring-2 ring-teal-300 ring-offset-1 animate-pulse" : ""}`}
+                        >
+                          + Add
+                        </button>
+                      );
+                    })()}
                   </div>
+                  {(evidenceForm.description.trim() || evidenceForm.file_url) ? (
+                    <div className="flex items-start gap-1.5 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+                      <span aria-hidden="true">⚠️</span>
+                      <span>Tap <span className="font-semibold">Add</span> to attach this evidence — otherwise it won't be saved with your entry.</span>
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-stone-400 px-0.5">
+                      Tip: fill in a description and/or upload a file, then tap <span className="font-semibold text-stone-500">Add</span> to attach it. You can add multiple items.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

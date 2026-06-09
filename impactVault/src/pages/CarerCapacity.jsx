@@ -7,8 +7,9 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } f
 import PageHeader from "../components/shared/PageHeader";
 import EmptyState from "../components/shared/EmptyState";
 import { parseISO, format, subDays } from "date-fns";
+import { todayLocal } from "@/utils";
 
-const EMPTY = { carer_name: "", participant_id: "", plan_goal_id: "", date: new Date().toISOString().slice(0, 10), fatigue_level: 3, emotional_load: 3, sleep_impact: 3, administrative_load: 3, carer_plans_impacted: [], additional_support_needed: "No", notes: "" };
+const EMPTY = { carer_name: "", participant_id: "", plan_goal_id: "", date: todayLocal(), fatigue_level: 3, emotional_load: 3, sleep_impact: 3, administrative_load: 3, carer_plans_impacted: [], additional_support_needed: "No", notes: "" };
 
 const PLANS_OPTIONS = ["Work", "Appointments or commitments", "Social plans", "Household responsibilities", "Sleep / rest", "Other"];
 const SUPPORT_OPTIONS = ["No", "Informal support", "Formal support"];

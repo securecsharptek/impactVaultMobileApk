@@ -2,6 +2,15 @@ const isNode = typeof window === 'undefined';
 const windowObj = isNode ? { localStorage: new Map() } : window;
 const storage = windowObj.localStorage;
 
+const toBoolean = (value, defaultValue = false) => {
+	if (value === null || value === undefined) return defaultValue;
+	if (typeof value === 'boolean') return value;
+	const normalized = String(value).trim().toLowerCase();
+	if (["1", "true", "yes", "on"].includes(normalized)) return true;
+	if (["0", "false", "no", "off"].includes(normalized)) return false;
+	return defaultValue;
+};
+
 const toSnakeCase = (str) => {
 	return str.replace(/([A-Z])/g, '_$1').toLowerCase();
 }
@@ -39,12 +48,17 @@ const getAppParams = () => {
 		storage.removeItem('base44_access_token');
 		storage.removeItem('token');
 	}
+	const bypassPaywallParam = getAppParamValue("bypass_paywall", {
+		// Paywall bypassed by default for now; set ?bypass_paywall=false or VITE_BYPASS_PAYWALL=false to re-enable.
+		defaultValue: import.meta.env.VITE_BYPASS_PAYWALL ?? "true",
+	});
 	return {
 		appId: getAppParamValue("app_id", { defaultValue: import.meta.env.VITE_BASE44_APP_ID }),
 		token: getAppParamValue("access_token", { removeFromUrl: true }),
 		fromUrl: getAppParamValue("from_url", { defaultValue: window.location.href }),
 		functionsVersion: getAppParamValue("functions_version", { defaultValue: import.meta.env.VITE_BASE44_FUNCTIONS_VERSION }),
 		appBaseUrl: getAppParamValue("app_base_url", { defaultValue: import.meta.env.VITE_BASE44_APP_BASE_URL }),
+		bypassPaywall: toBoolean(bypassPaywallParam, true),
 	}
 }
 

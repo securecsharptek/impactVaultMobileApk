@@ -17,6 +17,8 @@ import EvidenceStrengthCard from "../components/dashboard/EvidenceStrengthCard";
 import ImprovedQuickCapture from "../components/dashboard/ImprovedQuickCapture";
 import usePullToRefresh from "../hooks/usePullToRefresh";
 import { isNativeRuntime, getPlatform } from "../lib/native-auth";
+import { initPurchases, purchaseSubscription } from "../lib/purchase-service";
+import { appParams } from "../lib/app-params";
 
 const CORE_PLANS = [
   {
@@ -42,6 +44,7 @@ export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showQuickCapture, setShowQuickCapture] = useState(false);
+  const [quickCaptureCategory, setQuickCaptureCategory] = useState("");
   const [showCheckout, setShowCheckout] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
@@ -95,8 +98,9 @@ export default function Dashboard() {
 
   // Show checkout modal for users without a plan on mobile
   useEffect(() => {
-    if (user && !user.plan && isNativeRuntime()) {
+    if (!appParams.bypassPaywall && user && !user.plan && isNativeRuntime()) {
       setShowCheckout(true);
+      initPurchases().catch((err) => console.warn('[IAP] init failed', err));
     }
   }, [user]);
 
@@ -121,24 +125,17 @@ export default function Dashboard() {
         throw new Error('Could not detect platform');
       }
 
-      // For now, show alert that IAP flow needs native implementation
-      // This will be replaced with actual IAP SDK calls
-      console.log('[Purchase] Platform:', platform);
-      console.log('[Purchase] Price ID:', checkoutData.priceId);
-      console.log('[Purchase] Plan Name:', checkoutData.planName);
+      if (platform !== 'android') {
+        alert('In-app purchases on iOS are not enabled yet.');
+        return;
+      }
 
-      alert('In-app purchase flow will launch in next update. Using test mode for now.');
-      
-      // For testing, you can manually verify with:
-      // const result = await base44.functions.invoke('verifyInAppPurchase', {
-      //   platform,
-      //   purchaseToken: receipt.purchaseToken,
-      //   productId: checkoutData.priceId,
-      // });
-      // if (result.success) {
-      //   await load();
-      //   setShowCheckout(false);
-      // }
+      await initPurchases();
+      await purchaseSubscription(checkoutData.priceId);
+
+      // Backend verification happens inside purchaseSubscription; refresh user state.
+      await load();
+      setShowCheckout(false);
     } catch (error) {
       console.error('Checkout error:', error);
       alert(`Checkout failed: ${error.message}`);
@@ -174,7 +171,7 @@ export default function Dashboard() {
     ...impacts.filter(i => !i.archived).map(e => ({ ...e, _source: "impact" })),
     ...quickEntries.map(e => ({ ...e, _source: "quick" })),
   ];
-  const hasInsights = user?.insights_plan === true;
+  const hasInsights = appParams.bypassPaywall || user?.insights_plan === true;
 
   // Check for upcoming plan end dates
   const today = new Date();
@@ -196,7 +193,7 @@ export default function Dashboard() {
     .sort((a, b) => a.daysUntilEnd - b.daysUntilEnd);
 
   return (
-    <div ref={containerRef} className="space-y-4 md:space-y-6">
+    <div ref={containerRef} className="space-y-6 md:space-y-8">
       {/* Pull-to-refresh indicator */}
       {(pulling || refreshing) && (
         <div className="flex justify-center items-center py-2" style={{ transform: `translateY(${Math.min(pullDistance * 0.5, 32)}px)`, transition: pulling ? 'none' : 'transform 0.3s' }}>
@@ -325,7 +322,8 @@ export default function Dashboard() {
       {hasToday && <TodayTimeline impacts={impacts} />}
 
       {/* Improved Quick Capture */}
-      <ImprovedQuickCapture onCardClick={() => {
+      <ImprovedQuickCapture onCardClick={(category) => {
+        setQuickCaptureCategory(category || "");
         setShowQuickCapture(true);
       }} />
 
@@ -412,13 +410,14 @@ export default function Dashboard() {
       {/* Quick Capture Modal */}
       <QuickCaptureModal
         isOpen={showQuickCapture}
-        onClose={() => setShowQuickCapture(false)}
+        onClose={() => { setShowQuickCapture(false); setQuickCaptureCategory(""); }}
         participants={participants}
         onSuccess={() => load()}
+        initialCategory={quickCaptureCategory}
       />
 
       {/* Checkout Upsell Modal */}
-      {user && !user.plan && (
+      {user && !user.plan && !appParams.bypassPaywall && (
         <CheckoutUpsellModal
           isOpen={showCheckout}
           onClose={() => setShowCheckout(false)}

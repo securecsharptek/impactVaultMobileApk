@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Check, Sparkles } from "lucide-react";
+import { isNativeRuntime, getPlatform } from "@/lib/native-auth";
+import { initPurchases, getProducts, purchaseSubscription } from "@/lib/purchase-service";
+import { ANDROID_PRODUCTS } from "@/lib/iap-products";
 
 const CORE_PLANS = [
   {
@@ -83,6 +86,10 @@ export default function Pricing() {
   const [loading, setLoading] = useState(false);
   const [insightsBilling, setInsightsBilling] = useState("3monthly");
   const [user, setUser] = useState(null);
+  const [playProducts, setPlayProducts] = useState({}); // { [stripePriceId]: { title, description, price } }
+  const [playError, setPlayError] = useState(null);
+
+  const isAndroidNative = isNativeRuntime() && getPlatform() === 'android';
 
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
@@ -94,7 +101,54 @@ export default function Pricing() {
     }
   }, []);
 
+  // Load Google Play products when running on Android.
+  useEffect(() => {
+    if (!isAndroidNative) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await initPurchases();
+        const products = await getProducts();
+        if (cancelled) return;
+        // Build a map keyed by Stripe price ID for easy lookup in the existing render code.
+        const map = {};
+        for (const [stripeId, mapping] of Object.entries(ANDROID_PRODUCTS)) {
+          const product = products.find((p) => p.id === mapping.productId);
+          if (!product) continue;
+          const offer = product.offers?.find((o) => (o.id || '').includes(mapping.basePlanId)) || product.offers?.[0];
+          const phase = offer?.pricingPhases?.[0];
+          map[stripeId] = {
+            title: product.title || '',
+            description: product.description || '',
+            price: phase?.price || '',
+          };
+        }
+        setPlayProducts(map);
+      } catch (err) {
+        console.error('[Pricing] Failed to load Play products', err);
+        if (!cancelled) setPlayError(err.message || 'Failed to load store products');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isAndroidNative]);
+
   const handleCoreCheckout = async (priceId, planName) => {
+    if (isAndroidNative) {
+      setLoading(true);
+      try {
+        await purchaseSubscription(priceId);
+        // Refresh user state after a successful purchase.
+        const u = await base44.auth.me().catch(() => null);
+        if (u) setUser(u);
+      } catch (error) {
+        console.error('Play purchase error:', error);
+        alert(`Purchase failed: ${error.message || error}`);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     if (window.self !== window.top) {
       alert("Checkout is only available from the published app.");
       return;
@@ -141,45 +195,66 @@ export default function Pricing() {
       {/* Core Plans */}
       <div className="max-w-4xl mx-auto px-4 pb-12">
         <p className="text-xs font-semibold text-stone-400 uppercase tracking-widest mb-4">CORE PLANS</p>
+        {isAndroidNative && playError && (
+          <div className="mb-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+            Could not load Google Play products: {playError}
+          </div>
+        )}
+        {isAndroidNative && !playError && Object.keys(playProducts).length === 0 && (
+          <div className="mb-4 bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-sm text-stone-600">
+            Loading subscriptions from Google Play…
+          </div>
+        )}
         <div className="grid md:grid-cols-2 gap-6">
-          {CORE_PLANS.map((plan) => (
-            <div key={plan.name} className="rounded-2xl border border-stone-200 p-7 bg-white hover:shadow-md transition-all">
-              <h2 className="text-xl font-bold text-stone-800 mb-1">{plan.name}</h2>
-              <p className="text-sm text-stone-500 mb-5">{plan.description}</p>
-              <div className="mb-3">
-                <span className="text-4xl font-bold text-stone-900">{plan.price}</span>
-                <span className="text-stone-500 ml-2 text-sm">AUD</span>
-              </div>
-              <div className="mb-5">
-                <span className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold px-2.5 py-1 rounded-full">🔁 Recurring yearly charge</span>
-              </div>
-              <button
-                onClick={() => handleCoreCheckout(plan.priceId, plan.name)}
-                disabled={loading}
-                className="w-full py-3 rounded-xl font-semibold transition-colors mb-6 bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
-              >
-                {loading ? "Processing..." : "Get Started"}
-              </button>
-              <div className="space-y-2.5">
-                {plan.features.map((f) => (
-                  <div key={f} className="flex items-start gap-3">
-                    <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                    <span className="text-sm text-stone-700">{f}</span>
+          {CORE_PLANS
+            .filter((plan) => !isAndroidNative || playProducts[plan.priceId])
+            .map((plan) => {
+              const play = isAndroidNative ? playProducts[plan.priceId] : null;
+              const displayName = play?.title || plan.name;
+              const displayDescription = play?.description || plan.description;
+              const displayPrice = play?.price || plan.price;
+              return (
+                <div key={plan.name} className="rounded-2xl border border-stone-200 p-7 bg-white hover:shadow-md transition-all">
+                  <h2 className="text-xl font-bold text-stone-800 mb-1">{displayName}</h2>
+                  <p className="text-sm text-stone-500 mb-5">{displayDescription}</p>
+                  <div className="mb-3">
+                    <span className="text-4xl font-bold text-stone-900">{displayPrice}</span>
+                    {!isAndroidNative && <span className="text-stone-500 ml-2 text-sm">AUD</span>}
                   </div>
-                ))}
-              </div>
-            </div>
-          ))}
+                  <div className="mb-5">
+                    <span className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold px-2.5 py-1 rounded-full">🔁 Recurring yearly charge</span>
+                  </div>
+                  <button
+                    onClick={() => handleCoreCheckout(plan.priceId, plan.name)}
+                    disabled={loading}
+                    className="w-full py-3 rounded-xl font-semibold transition-colors mb-6 bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
+                  >
+                    {loading ? "Processing..." : "Get Started"}
+                  </button>
+                  <div className="space-y-2.5">
+                    {plan.features.map((f) => (
+                      <div key={f} className="flex items-start gap-3">
+                        <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                        <span className="text-sm text-stone-700">{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
         </div>
       </div>
 
       {/* Divider */}
+      {!isAndroidNative && (
       <div className="max-w-4xl mx-auto px-4 mb-10">
         <div className="border-t border-stone-200" />
         <h2 className="text-center text-2xl md:text-3xl font-bold text-stone-900 mt-8 mb-1">See the Patterns Behind Daily Life</h2>
       </div>
+      )}
 
       {/* Insights Add-on */}
+      {!isAndroidNative && (
       <div id="insights-section" className="max-w-4xl mx-auto px-4 pb-16">
         {user?.plan && (
           <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-amber-800">
@@ -342,6 +417,7 @@ export default function Pricing() {
           })}
         </div>
       </div>
+      )}
 
       <div className="text-center py-8 px-4">
         <p className="text-sm text-stone-400">Core plans renew yearly. Insights plans are recurring subscriptions — 3-monthly or yearly<br />· Cancel anytime after minimum commitment</p>

@@ -1,5 +1,7 @@
+import { todayLocal } from "@/utils";
+
 export default function SeverityProfile({ impacts, avgSeverity }) {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayLocal();
   const todayImpacts = impacts.filter(i => i.date === today);
 
   if (todayImpacts.length === 0 || !avgSeverity) return null;

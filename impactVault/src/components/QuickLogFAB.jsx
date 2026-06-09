@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { Plus, X, BookOpen, FolderOpen, Heart, Upload, Paperclip } from "lucide-react";
 
@@ -22,6 +24,8 @@ const SUPPORT_OPTIONS = [
   { value: "medical_support", label: "Medical support required" },
 ];
 const EVIDENCE_TYPES = ["school","therapy","medical","behaviour","other"];
+const CARER_PLANS_OPTIONS = ["Work", "Appointments or commitments", "Social plans", "Household responsibilities", "Sleep / rest", "Other"];
+const CARER_SUPPORT_OPTIONS = ["No", "Informal support", "Formal support"];
 const METRICS = [
   { key: "fatigue_level", label: "Fatigue", color: "#f59e0b" },
   { key: "emotional_load", label: "Emotional Load", color: "#ef4444" },
@@ -31,9 +35,15 @@ const METRICS = [
 
 const EMPTY_IMPACT = { participant_id:"", plan_goal_id:"", plan_goal_ids:[], date:today(), severity:3, impact_level:"", impact_types:[], functional_impact:"", support_required:"", environment:"home", duration:"", notes:"" };
 const EMPTY_EVIDENCE = { participant_id:"", plan_goal_id:"", upload_date:today(), description:"", type:"other", file_url:"", file_name:"" };
-const EMPTY_CARER = { carer_name:"", participant_id:"", date:today(), fatigue_level:3, emotional_load:3, sleep_impact:3, administrative_load:3, notes:"" };
+const EMPTY_CARER = { carer_name:"", participant_id:"", plan_goal_id:"", date:today(), fatigue_level:3, emotional_load:3, sleep_impact:3, administrative_load:3, carer_plans_impacted:[], additional_support_needed:"No", notes:"" };
 
-function today() { return new Date().toISOString().slice(0,10); }
+function today() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
 // ── Main FAB Component ────────────────────────────────────────────────────────
 export default function QuickLogFAB() {
@@ -42,23 +52,42 @@ export default function QuickLogFAB() {
   const [participants, setParticipants] = useState([]);
   const [goals, setGoals] = useState([]);
 
+  const loadData = async () => {
+    try {
+      const user = await base44.auth.me();
+      if (!user?.email) return;
+      // Run independently so one failure does not blank the other.
+      base44.entities.ParticipantProfile.filter({ created_by: user.email })
+        .then((p) => setParticipants(Array.isArray(p) ? p : []))
+        .catch((err) => console.warn("[QuickLogFAB] participants load failed:", err?.message || err));
+      base44.entities.PlanGoal.filter({ created_by: user.email })
+        .then((g) => setGoals(Array.isArray(g) ? g : []))
+        .catch((err) => console.warn("[QuickLogFAB] goals load failed:", err?.message || err));
+    } catch (err) {
+      console.warn("[QuickLogFAB] auth.me failed:", err?.message || err);
+    }
+  };
+
   useEffect(() => {
-    base44.auth.me().then((user) => {
-      if (!user) return;
-      Promise.all([
-        base44.entities.ParticipantProfile.filter({ created_by: user.email }),
-        base44.entities.PlanGoal.filter({ created_by: user.email }),
-      ]).then(([p, g]) => { setParticipants(p); setGoals(g); });
-    });
+    loadData();
   }, []);
 
-  const open = (type) => { setModal(type); setMenuOpen(false); };
+  const open = (type) => {
+    setModal(type);
+    setMenuOpen(false);
+    // Refresh on every open so a newly added participant appears immediately
+    // and any earlier auth/load failure self-heals.
+    loadData();
+  };
   const close = () => setModal(null);
 
   return (
     <>
       {/* FAB */}
-      <div className="fixed bottom-24 right-6 z-40 md:bottom-6 flex flex-col items-end gap-3">
+      <div
+        className="fixed right-6 z-40 flex flex-col items-end gap-3 md:bottom-6"
+        style={{ bottom: 'calc(env(safe-area-inset-bottom) + 6.5rem)' }}
+      >
         {/* Action menu */}
         {menuOpen && (
           <div className="flex flex-col items-end gap-2 mb-1">
@@ -128,6 +157,7 @@ function Modal({ title, onClose, onSave, saving, saveLabel, saveColor = "bg-ambe
 
 // ── Impact Modal ──────────────────────────────────────────────────────────────
 function ImpactModal({ participants, goals, onClose }) {
+  const navigate = useNavigate();
   const [form, setForm] = useState(EMPTY_IMPACT);
   const [saving, setSaving] = useState(false);
 
@@ -142,16 +172,31 @@ function ImpactModal({ participants, goals, onClose }) {
   const save = async () => {
     if (!form.participant_id || form.impact_types.length === 0) return;
     setSaving(true);
-    await base44.entities.DailyImpactLog.create({ ...form, severity: Number(form.severity) });
-    setSaving(false);
-    onClose();
+    try {
+      await base44.entities.DailyImpactLog.create({ ...form, severity: Number(form.severity) });
+      onClose();
+      // Take the user to the Impact Log so they can see the entry was saved.
+      navigate(createPageUrl("ImpactLog"));
+    } catch (err) {
+      console.error("[QuickLogFAB] DailyImpactLog save failed:", err);
+      alert(err?.message || "Could not save. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const pGoals = goals.filter(g => g.participant_id === form.participant_id);
 
   return (
     <Modal title="New Impact Entry" onClose={onClose} onSave={save} saving={saving} saveLabel="Save Entry">
-      <SelectField label="Participant *" value={form.participant_id} onChange={v => setForm({ ...form, participant_id: v, plan_goal_id: "", plan_goal_ids: [] })} options={participants.map(p => ({ value: p.id, label: p.name }))} placeholder="Select participant…" />
+      <SelectField
+        label="Participant *"
+        value={form.participant_id}
+        onChange={v => setForm({ ...form, participant_id: v, plan_goal_id: "", plan_goal_ids: [] })}
+        options={participants.map(p => ({ value: p.id, label: p.name }))}
+        placeholder="Select participant…"
+        emptyHint="No people added yet — add one from Person Profile first."
+      />
       <InputField label="Date" type="date" value={form.date} onChange={v => setForm({ ...form, date: v })} />
       <div>
         <label className="block text-xs font-medium text-stone-600 mb-2">Severity *</label>
@@ -258,16 +303,29 @@ function EvidenceModal({ participants, goals, onClose }) {
   const save = async () => {
     if (!form.participant_id || !form.description.trim()) return;
     setSaving(true);
-    await base44.entities.EvidenceItem.create(form);
-    setSaving(false);
-    onClose();
+    try {
+      await base44.entities.EvidenceItem.create(form);
+      onClose();
+    } catch (err) {
+      console.error("[QuickLogFAB] EvidenceItem save failed:", err);
+      alert(err?.message || "Could not save evidence. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const pGoals = goals.filter(g => g.participant_id === form.participant_id && g.status === "active");
 
   return (
     <Modal title="Upload Evidence" onClose={onClose} onSave={save} saving={saving || uploading} saveLabel="Save Evidence" saveColor="bg-teal-600 hover:bg-teal-700">
-      <SelectField label="Participant *" value={form.participant_id} onChange={v => setForm({ ...form, participant_id: v, plan_goal_id: "" })} options={participants.map(p => ({ value: p.id, label: p.name }))} placeholder="Select participant…" />
+      <SelectField
+        label="Participant *"
+        value={form.participant_id}
+        onChange={v => setForm({ ...form, participant_id: v, plan_goal_id: "" })}
+        options={participants.map(p => ({ value: p.id, label: p.name }))}
+        placeholder="Select participant…"
+        emptyHint="No people added yet — add one from Person Profile first."
+      />
       <InputField label="Upload Date" type="date" value={form.upload_date} onChange={v => setForm({ ...form, upload_date: v })} />
       <TextareaField label="Description *" value={form.description} onChange={v => setForm({ ...form, description: v })} />
       <div>
@@ -295,25 +353,43 @@ function EvidenceModal({ participants, goals, onClose }) {
 function CarerModal({ participants, goals, onClose }) {
   const [form, setForm] = useState(EMPTY_CARER);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const save = async () => {
-    if (!form.carer_name.trim()) return;
+    if (!form.carer_name.trim()) {
+      setError("Please enter the caregiver's name.");
+      return;
+    }
+    setError("");
     setSaving(true);
-    await base44.entities.CarerCapacityLog.create({
-      ...form,
-      fatigue_level: Number(form.fatigue_level),
-      emotional_load: Number(form.emotional_load),
-      sleep_impact: Number(form.sleep_impact),
-      administrative_load: Number(form.administrative_load),
-    });
-    setSaving(false);
-    onClose();
+    try {
+      await base44.entities.CarerCapacityLog.create({
+        ...form,
+        fatigue_level: Number(form.fatigue_level),
+        emotional_load: Number(form.emotional_load),
+        sleep_impact: Number(form.sleep_impact),
+        administrative_load: Number(form.administrative_load),
+        carer_plans_impacted: form.carer_plans_impacted || [],
+        additional_support_needed: form.additional_support_needed || "No",
+      });
+      onClose();
+    } catch (err) {
+      console.error("[QuickLogFAB] CarerCapacityLog save failed:", err);
+      setError(err?.message || "Could not save. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const pGoals = goals.filter(g => g.participant_id === form.participant_id && g.status === "active");
 
   return (
     <Modal title="Log Caregiver Capacity" onClose={onClose} onSave={save} saving={saving} saveLabel="Save Entry" saveColor="bg-rose-600 hover:bg-rose-700">
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-700">
+          {error}
+        </div>
+      )}
       <InputField label="Caregiver Name *" value={form.carer_name} onChange={v => setForm({ ...form, carer_name: v })} placeholder="Enter name…" />
       <InputField label="Date" type="date" value={form.date} onChange={v => setForm({ ...form, date: v })} />
       <SelectField label="Person Profile" value={form.participant_id} onChange={v => setForm({ ...form, participant_id: v, plan_goal_id: "" })} options={participants.map(p => ({ value: p.id, label: p.name }))} placeholder="None" />
@@ -330,6 +406,49 @@ function CarerModal({ participants, goals, onClose }) {
           <p className="text-xs text-stone-400 mt-1">1 = minimal · 5 = very high</p>
         </div>
       ))}
+      <div>
+        <label className="block text-xs font-medium text-stone-600 mb-2">Carer Plans Impacted</label>
+        <div className="space-y-2">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={(form.carer_plans_impacted || []).length === 0}
+              onChange={(e) => setForm({ ...form, carer_plans_impacted: e.target.checked ? [] : form.carer_plans_impacted })}
+              className="rounded border-stone-300"
+            />
+            <span className="text-sm text-stone-600">None</span>
+          </label>
+          {CARER_PLANS_OPTIONS.map((plan) => (
+            <label key={plan} className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={(form.carer_plans_impacted || []).includes(plan)}
+                onChange={() => togglePlan(plan)}
+                className="rounded border-stone-300"
+              />
+              <span className="text-sm text-stone-600">{plan}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-stone-600 mb-2">Was additional support needed?</label>
+        <div className="space-y-2">
+          {CARER_SUPPORT_OPTIONS.map((option) => (
+            <label key={option} className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="carer-support"
+                value={option}
+                checked={form.additional_support_needed === option}
+                onChange={(e) => setForm({ ...form, additional_support_needed: e.target.value })}
+                className="rounded-full border-stone-300"
+              />
+              <span className="text-sm text-stone-600">{option}</span>
+            </label>
+          ))}
+        </div>
+      </div>
       {pGoals.length > 0 && (
         <SelectField label="Linked Goal" value={form.plan_goal_id} onChange={v => setForm({ ...form, plan_goal_id: v })} options={pGoals.map(g => ({ value: g.id, label: g.title }))} placeholder="None" />
       )}
@@ -343,8 +462,14 @@ function InputField({ label, value, onChange, type = "text", placeholder }) {
   return (
     <div>
       <label className="block text-xs font-medium text-stone-600 mb-1">{label}</label>
-      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-300" />
+      <input
+        type={type}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full block appearance-none text-left border border-stone-200 rounded-xl px-3 py-2.5 text-sm text-stone-800 bg-white focus:outline-none focus:ring-2 focus:ring-amber-300"
+        style={{ minHeight: 42, WebkitAppearance: 'none' }}
+      />
     </div>
   );
 }
@@ -359,15 +484,23 @@ function TextareaField({ label, value, onChange, rows = 2 }) {
   );
 }
 
-function SelectField({ label, value, onChange, options, placeholder }) {
+function SelectField({ label, value, onChange, options, placeholder, emptyHint }) {
+  const isEmpty = !options || options.length === 0;
   return (
     <div>
       <label className="block text-xs font-medium text-stone-600 mb-1">{label}</label>
-      <select value={value} onChange={e => onChange(e.target.value)}
-        className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-300">
-        {placeholder && <option value="">{placeholder}</option>}
-        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        disabled={isEmpty}
+        className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-300 disabled:bg-stone-50 disabled:text-stone-400"
+      >
+        {placeholder && <option value="">{isEmpty ? (emptyHint || "No options available") : placeholder}</option>}
+        {!isEmpty && options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
+      {isEmpty && emptyHint && (
+        <p className="text-[11px] text-amber-700 mt-1.5">{emptyHint}</p>
+      )}
     </div>
   );
 }
