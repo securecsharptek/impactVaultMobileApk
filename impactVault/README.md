@@ -21,6 +21,20 @@ Any change pushed to the repo will also be reflected in the Base44 Builder.
 VITE_BASE44_APP_ID=your_app_id
 VITE_BASE44_APP_BASE_URL=your_backend_url
 
+# Native In-App Purchase product IDs
+VITE_IAP_PRODUCT_CORE_INDIVIDUAL=com.impactvault.core.individual.yearly
+VITE_IAP_PRODUCT_CORE_FAMILY=com.impactvault.core.family.yearly
+VITE_IAP_PRODUCT_INSIGHTS_INDIVIDUAL_MONTHLY=
+VITE_IAP_PRODUCT_INSIGHTS_INDIVIDUAL_YEARLY=
+VITE_IAP_PRODUCT_INSIGHTS_FAMILY_MONTHLY=
+VITE_IAP_PRODUCT_INSIGHTS_FAMILY_YEARLY=
+
+# Use sandbox endpoints while testing in TestFlight/internal testing
+VITE_IAP_USE_SANDBOX=true
+
+# Needed for Android server-side verification payload
+VITE_ANDROID_PACKAGE_NAME=com.impactvault.app
+
 e.g.
 VITE_BASE44_APP_ID=cbef744a8545c389ef439ea6
 VITE_BASE44_APP_BASE_URL=https://my-to-do-list-81bfaad7.base44.app

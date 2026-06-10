@@ -24,14 +24,30 @@ const CORE_PLANS = [
   {
     type: 'individual',
     name: 'Impact Vault Core',
-    founding: { priceId: 'price_1TLETKDZJD79Rb243HE1dH06', name: 'Impact Vault Core Founding' },
-    standard: { priceId: 'price_1TLETKDZJD79Rb243HE1dH06', name: 'Impact Vault Core' },
+    founding: {
+      priceId: 'price_1TLETKDZJD79Rb243HE1dH06',
+      iapProductId: IAP_PRODUCTS.coreIndividual,
+      name: 'Impact Vault Core Founding',
+    },
+    standard: {
+      priceId: 'price_1TLETKDZJD79Rb243HE1dH06',
+      iapProductId: IAP_PRODUCTS.coreIndividual,
+      name: 'Impact Vault Core',
+    },
   },
   {
     type: 'family',
     name: 'Impact Vault Family',
-    founding: { priceId: 'price_1TLEVjDZJD79Rb24ntzxhpCi', name: 'Impact Vault Family Founding' },
-    standard: { priceId: 'price_1TLEVjDZJD79Rb24ntzxhpCi', name: 'Impact Vault Family' },
+    founding: {
+      priceId: 'price_1TLEVjDZJD79Rb24ntzxhpCi',
+      iapProductId: IAP_PRODUCTS.coreFamily,
+      name: 'Impact Vault Family Founding',
+    },
+    standard: {
+      priceId: 'price_1TLEVjDZJD79Rb24ntzxhpCi',
+      iapProductId: IAP_PRODUCTS.coreFamily,
+      name: 'Impact Vault Family',
+    },
   },
 ];
 
@@ -201,7 +217,7 @@ export default function Dashboard() {
         </div>
       )}
       {/* Hero banner */}
-      <div className="rounded-2xl px-5 py-6 md:px-8 md:py-8 flex items-center justify-between gap-4" style={{background: 'linear-gradient(135deg, #B6ADA5 0%, #9A9089 100%)'}}>
+      <div className="rounded-2xl px-5 py-6 md:px-8 md:py-8 flex items-center justify-between gap-4" style={{ background: 'linear-gradient(135deg, #B6ADA5 0%, #9A9089 100%)' }}>
         <div>
           <p className="text-xs font-medium uppercase tracking-widest text-white/70 mb-2">{format(new Date(), "EEEE, d MMMM yyyy")}</p>
           <h1 className="text-2xl md:text-3xl font-bold leading-tight text-white">Impact Vault</h1>
@@ -224,7 +240,7 @@ export default function Dashboard() {
             const bgColor = urgency === "critical" ? "bg-red-50 border-red-200" : urgency === "warning" ? "bg-orange-50 border-orange-200" : urgency === "caution" ? "bg-yellow-50 border-yellow-200" : "bg-blue-50 border-blue-200";
             const textColor = urgency === "critical" ? "text-red-800" : urgency === "warning" ? "text-orange-800" : urgency === "caution" ? "text-yellow-800" : "text-blue-800";
             const iconColor = urgency === "critical" ? "text-red-600" : urgency === "warning" ? "text-orange-600" : urgency === "caution" ? "text-yellow-600" : "text-blue-600";
-            
+
             let timeText = "";
             if (daysUntilEnd === 0) timeText = "ending today";
             else if (daysUntilEnd === 1) timeText = "ending tomorrow";
@@ -304,9 +320,9 @@ export default function Dashboard() {
               <Link
                 to={createPageUrl("ImpactLog")}
                 className="flex items-center gap-1.5 px-4 py-2 bg-stone-900 text-white text-xs font-semibold rounded-xl hover:bg-stone-700 transition-colors"
-                >
+              >
                 <BookOpen className="w-3.5 h-3.5" /> Capture Impact
-                </Link>
+              </Link>
             </div>
           </div>
         )}
@@ -348,24 +364,24 @@ export default function Dashboard() {
             ) : (
               <div className="space-y-2">
                 {recentImpacts.map((imp) => {
-                   const p = participants.find((x) => x.id === imp.participant_id);
-                   const severityColor = imp.severity <= 2 ? "text-green-600" : imp.severity === 3 ? "text-yellow-600" : imp.severity === 4 ? "text-orange-600" : "text-red-600";
-                   const severityLabel = imp.severity <= 2 ? "mild" : imp.severity === 3 ? "moderate" : imp.severity === 4 ? "high" : "severe";
-                   return (
-                     <div key={imp.id} className="flex items-start gap-3 py-2 border-b border-stone-100 last:border-0">
-                       <div className="flex-col flex items-start shrink-0">
-                         <span className={`font-bold text-lg ${severityColor}`}>{imp.severity}</span>
-                         <span className="text-xs text-stone-400">{severityLabel}</span>
-                       </div>
-                       <div className="flex-1 min-w-0">
-                         <p className="text-sm text-stone-700 truncate">{imp.description || imp.functional_impact}</p>
-                         <p className="text-xs text-stone-400 mt-0.5">
-                           {p?.name} · {imp.date}
-                         </p>
-                       </div>
-                     </div>
-                   );
-                 })}
+                  const p = participants.find((x) => x.id === imp.participant_id);
+                  const severityColor = imp.severity <= 2 ? "text-green-600" : imp.severity === 3 ? "text-yellow-600" : imp.severity === 4 ? "text-orange-600" : "text-red-600";
+                  const severityLabel = imp.severity <= 2 ? "mild" : imp.severity === 3 ? "moderate" : imp.severity === 4 ? "high" : "severe";
+                  return (
+                    <div key={imp.id} className="flex items-start gap-3 py-2 border-b border-stone-100 last:border-0">
+                      <div className="flex-col flex items-start shrink-0">
+                        <span className={`font-bold text-lg ${severityColor}`}>{imp.severity}</span>
+                        <span className="text-xs text-stone-400">{severityLabel}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-stone-700 truncate">{imp.description || imp.functional_impact}</p>
+                        <p className="text-xs text-stone-400 mt-0.5">
+                          {p?.name} · {imp.date}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
