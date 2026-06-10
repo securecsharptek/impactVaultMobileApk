@@ -78,7 +78,6 @@ out/
 
 # Capacitor files
 /android/app/capacitor-cordova-android-plugins/
-/ios/
 dist/
 www/
 
