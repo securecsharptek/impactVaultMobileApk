@@ -16,20 +16,50 @@ import TodayTimeline from "../components/dashboard/TodayTimeline";
 import EvidenceStrengthCard from "../components/dashboard/EvidenceStrengthCard";
 import ImprovedQuickCapture from "../components/dashboard/ImprovedQuickCapture";
 import usePullToRefresh from "../hooks/usePullToRefresh";
-import { isNativeRuntime, getPlatform } from "../lib/native-auth";
+import {
+  isNativeRuntime,
+  getPlatform,
+  getNativeReceipt,
+  finishNativeTransaction,
+} from "../lib/native-auth";
+
+const IAP_PRODUCTS = {
+  coreIndividual: import.meta.env.VITE_IAP_PRODUCT_CORE_INDIVIDUAL || 'com.impactvault.core.individual.yearly',
+  coreFamily: import.meta.env.VITE_IAP_PRODUCT_CORE_FAMILY || 'com.impactvault.core.family.yearly',
+  insightsIndividualMonthly: import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_INDIVIDUAL_MONTHLY || '',
+  insightsIndividualYearly: import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_INDIVIDUAL_YEARLY || '',
+  insightsFamilyMonthly: import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_FAMILY_MONTHLY || '',
+  insightsFamilyYearly: import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_FAMILY_YEARLY || '',
+};
 
 const CORE_PLANS = [
   {
     type: 'individual',
     name: 'Impact Vault Core',
-    founding: { priceId: 'price_1TLETKDZJD79Rb243HE1dH06', name: 'Impact Vault Core Founding' },
-    standard: { priceId: 'price_1TLETKDZJD79Rb243HE1dH06', name: 'Impact Vault Core' },
+    founding: {
+      priceId: 'price_1TLETKDZJD79Rb243HE1dH06',
+      iapProductId: IAP_PRODUCTS.coreIndividual,
+      name: 'Impact Vault Core Founding',
+    },
+    standard: {
+      priceId: 'price_1TLETKDZJD79Rb243HE1dH06',
+      iapProductId: IAP_PRODUCTS.coreIndividual,
+      name: 'Impact Vault Core',
+    },
   },
   {
     type: 'family',
     name: 'Impact Vault Family',
-    founding: { priceId: 'price_1TLEVjDZJD79Rb24ntzxhpCi', name: 'Impact Vault Family Founding' },
-    standard: { priceId: 'price_1TLEVjDZJD79Rb24ntzxhpCi', name: 'Impact Vault Family' },
+    founding: {
+      priceId: 'price_1TLEVjDZJD79Rb24ntzxhpCi',
+      iapProductId: IAP_PRODUCTS.coreFamily,
+      name: 'Impact Vault Family Founding',
+    },
+    standard: {
+      priceId: 'price_1TLEVjDZJD79Rb24ntzxhpCi',
+      iapProductId: IAP_PRODUCTS.coreFamily,
+      name: 'Impact Vault Family',
+    },
   },
 ];
 
@@ -121,24 +151,45 @@ export default function Dashboard() {
         throw new Error('Could not detect platform');
       }
 
-      // For now, show alert that IAP flow needs native implementation
-      // This will be replaced with actual IAP SDK calls
-      console.log('[Purchase] Platform:', platform);
-      console.log('[Purchase] Price ID:', checkoutData.priceId);
-      console.log('[Purchase] Plan Name:', checkoutData.planName);
+      const iapProductId = checkoutData.iapProductId || checkoutData.productId || '';
+      if (!iapProductId) {
+        throw new Error(
+          'No in-app product ID configured for this plan. Set VITE_IAP_PRODUCT_* env vars and rebuild the app.'
+        );
+      }
 
-      alert('In-app purchase flow will launch in next update. Using test mode for now.');
-      
-      // For testing, you can manually verify with:
-      // const result = await base44.functions.invoke('verifyInAppPurchase', {
-      //   platform,
-      //   purchaseToken: receipt.purchaseToken,
-      //   productId: checkoutData.priceId,
-      // });
-      // if (result.success) {
-      //   await load();
-      //   setShowCheckout(false);
-      // }
+      const receipt = await getNativeReceipt(iapProductId);
+      const useSandbox = import.meta.env.VITE_IAP_USE_SANDBOX === 'true';
+
+      const payload = {
+        platform,
+        productId: receipt.productId || iapProductId,
+        useSandbox,
+      };
+
+      if (platform === 'ios') {
+        payload.transactionId = receipt.transactionId;
+      } else {
+        payload.purchaseToken = receipt.purchaseToken;
+        payload.packageName = import.meta.env.VITE_ANDROID_PACKAGE_NAME;
+      }
+
+      if (platform === 'ios' && !payload.transactionId) {
+        throw new Error('Native iOS purchase did not return transactionId');
+      }
+      if (platform === 'android' && !payload.purchaseToken) {
+        throw new Error('Native Android purchase did not return purchaseToken');
+      }
+
+      const verifyResult = await base44.functions.invoke('verifyInAppPurchase', payload);
+      if (verifyResult?.data?.success !== true) {
+        throw new Error(verifyResult?.data?.error || 'Purchase verification failed');
+      }
+
+      await finishNativeTransaction(receipt.transactionId);
+
+      await load();
+      setShowCheckout(false);
     } catch (error) {
       console.error('Checkout error:', error);
       alert(`Checkout failed: ${error.message}`);

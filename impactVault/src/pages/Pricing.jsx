@@ -1,6 +1,21 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Check, Sparkles } from "lucide-react";
+import {
+  isNativeRuntime,
+  getPlatform,
+  getNativeReceipt,
+  finishNativeTransaction,
+} from "../lib/native-auth";
+
+const IAP_PRODUCTS = {
+  coreIndividual: import.meta.env.VITE_IAP_PRODUCT_CORE_INDIVIDUAL || "com.impactvault.core.individual.yearly",
+  coreFamily: import.meta.env.VITE_IAP_PRODUCT_CORE_FAMILY || "com.impactvault.core.family.yearly",
+  insightsIndividualMonthly: import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_INDIVIDUAL_MONTHLY || "",
+  insightsIndividualYearly: import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_INDIVIDUAL_YEARLY || "",
+  insightsFamilyMonthly: import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_FAMILY_MONTHLY || "",
+  insightsFamilyYearly: import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_FAMILY_YEARLY || "",
+};
 
 const CORE_PLANS = [
   {
@@ -8,6 +23,7 @@ const CORE_PLANS = [
     description: "Capture functional impact and support needs over time for one person.",
     price: "$79",
     priceId: "price_1TLETKDZJD79Rb243HE1dH06",
+    iapProductId: IAP_PRODUCTS.coreIndividual,
     billing: "AUD / year",
     features: [
       "Capture real-life moments in under 60 seconds",
@@ -24,6 +40,7 @@ const CORE_PLANS = [
     description: "Capture and organise support needs across your family in one place.",
     price: "$129",
     priceId: "price_1TLEVjDZJD79Rb24ntzxhpCi",
+    iapProductId: IAP_PRODUCTS.coreFamily,
     billing: "AUD / year",
     features: [
       "Support up to 3 family members in one place",
@@ -47,6 +64,8 @@ const INSIGHTS_PLANS = [
     subLabel3mDetail: "Minimum 3-month commitment · Billed every 3 months",
     priceId3m: "price_1TLEdPDZJD79Rb2439Vv2XLE",
     priceIdYearly: "price_1TLEgSDZJD79Rb24JX6rF9sP",
+    iapProductId3m: IAP_PRODUCTS.insightsIndividualMonthly,
+    iapProductIdYearly: IAP_PRODUCTS.insightsIndividualYearly,
     buttonLabel: "Get Weekly Insights",
     features: [
       "Weekly summaries of what changed",
@@ -66,6 +85,8 @@ const INSIGHTS_PLANS = [
     subLabel3mDetail: "Minimum 3-month commitment · Billed every 3 months",
     priceId3m: "price_1TLEiZDZJD79Rb24xqNkjp8I",
     priceIdYearly: "price_1TLEmQDZJD79Rb24AvripyHx",
+    iapProductId3m: IAP_PRODUCTS.insightsFamilyMonthly,
+    iapProductIdYearly: IAP_PRODUCTS.insightsFamilyYearly,
     featured: true,
     buttonLabel: "Get Family Insights",
     features: [
@@ -83,6 +104,93 @@ export default function Pricing() {
   const [loading, setLoading] = useState(false);
   const [insightsBilling, setInsightsBilling] = useState("3monthly");
   const [user, setUser] = useState(null);
+  const nativeRuntime = isNativeRuntime();
+
+  const mask = (value) => {
+    if (!value || typeof value !== "string") return value;
+    if (value.length <= 8) return `${value.slice(0, 2)}***`;
+    return `${value.slice(0, 4)}...${value.slice(-4)}`;
+  };
+
+  const handleNativePurchase = async ({ iapProductId, fallbackProductId, planName }) => {
+    console.log("[IAP][Pricing] Native purchase started", {
+      iapProductId,
+      fallbackProductId,
+      planName,
+    });
+
+    if (!iapProductId) {
+      throw new Error("This in-app product is not configured. Set VITE_IAP_PRODUCT_* environment variables.");
+    }
+
+    const platform = getPlatform();
+    console.log("[IAP][Pricing] Platform resolved", { platform });
+    if (!platform) {
+      throw new Error("Could not detect native platform.");
+    }
+
+    const receipt = await getNativeReceipt(iapProductId);
+    console.log("[IAP][Pricing] Native receipt captured", {
+      productId: receipt?.productId,
+      transactionId: receipt?.transactionId,
+      purchaseToken: mask(receipt?.purchaseToken),
+    });
+
+    const payload = {
+      platform,
+      productId: receipt.productId || iapProductId || fallbackProductId,
+      useSandbox: import.meta.env.VITE_IAP_USE_SANDBOX === "true",
+      planName,
+    };
+
+    if (platform === "ios") {
+      payload.transactionId = receipt.transactionId;
+    } else {
+      payload.purchaseToken = receipt.purchaseToken;
+      payload.packageName = import.meta.env.VITE_ANDROID_PACKAGE_NAME;
+    }
+
+    console.log("[IAP][Pricing] Verification payload prepared", {
+      platform: payload.platform,
+      productId: payload.productId,
+      useSandbox: payload.useSandbox,
+      transactionId: payload.transactionId,
+      purchaseToken: mask(payload.purchaseToken),
+      packageName: payload.packageName,
+    });
+
+    if (platform === "ios" && !payload.transactionId) {
+      throw new Error("Native iOS purchase did not return transactionId");
+    }
+    if (platform === "android" && !payload.purchaseToken) {
+      throw new Error("Native Android purchase did not return purchaseToken");
+    }
+
+    const verifyResult = await base44.functions.invoke("verifyInAppPurchase", payload);
+    console.log("[IAP][Pricing] Verification response received", {
+      success: verifyResult?.data?.success,
+      status: verifyResult?.data?.verification?.status,
+      transactionId: verifyResult?.data?.verification?.transaction_id,
+      productId: verifyResult?.data?.productId,
+      error: verifyResult?.data?.error,
+    });
+    if (verifyResult?.data?.success !== true) {
+      throw new Error(verifyResult?.data?.error || "Purchase verification failed");
+    }
+
+    await finishNativeTransaction(receipt.transactionId);
+    console.log("[IAP][Pricing] Native transaction finish completed", {
+      transactionId: receipt.transactionId,
+    });
+
+    const refreshedUser = await base44.auth.me();
+    setUser(refreshedUser);
+    console.log("[IAP][Pricing] User reloaded after purchase", {
+      email: refreshedUser?.email,
+      plan: refreshedUser?.plan,
+      insights_plan: refreshedUser?.insights_plan,
+    });
+  };
 
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
@@ -95,39 +203,91 @@ export default function Pricing() {
   }, []);
 
   const handleCoreCheckout = async (priceId, planName) => {
-    if (window.self !== window.top) {
+    console.log("[IAP][Pricing] Core checkout clicked", { priceId, planName, nativeRuntime });
+    if (!nativeRuntime && window.self !== window.top) {
       alert("Checkout is only available from the published app.");
       return;
     }
     setLoading(true);
     try {
+      if (nativeRuntime) {
+        const plan = CORE_PLANS.find((p) => p.priceId === priceId);
+        console.log("[IAP][Pricing] Using native core plan", {
+          matchedPlan: plan?.name,
+          iapProductId: plan?.iapProductId,
+        });
+        await handleNativePurchase({
+          iapProductId: plan?.iapProductId,
+          fallbackProductId: plan?.iapProductId,
+          planName,
+        });
+        alert("Purchase successful.");
+        return;
+      }
+
       const response = await base44.functions.invoke('createCheckoutSession', { priceId, planName });
       if (response.data?.url) window.location.href = response.data.url;
     } catch (error) {
       console.error('Checkout error:', error);
-      alert('Payment setup failed. Please try again.');
+      console.error("[IAP][Pricing] Core checkout failed", {
+        message: error?.message,
+        stack: error?.stack,
+      });
+      alert(`Payment failed: ${error?.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
   };
 
   const handleInsightsCheckout = async (plan) => {
-    if (window.self !== window.top) {
+    console.log("[IAP][Pricing] Insights checkout clicked", {
+      plan: plan?.name,
+      insightsBilling,
+      nativeRuntime,
+    });
+    if (!nativeRuntime && window.self !== window.top) {
       alert("Checkout is only available from the published app.");
       return;
     }
     const priceId = insightsBilling === "3monthly" ? plan.priceId3m : plan.priceIdYearly;
+    const iapProductId = insightsBilling === "3monthly" ? plan.iapProductId3m : plan.iapProductIdYearly;
     setLoading(true);
     try {
+      if (nativeRuntime) {
+        console.log("[IAP][Pricing] Using native insights product", {
+          plan: plan?.name,
+          iapProductId,
+        });
+        await handleNativePurchase({
+          iapProductId,
+          fallbackProductId: iapProductId,
+          planName: plan.name,
+        });
+        alert("Purchase successful.");
+        return;
+      }
+
       const response = await base44.functions.invoke('createCheckoutSession', { priceId, planName: plan.name });
       if (response.data?.url) window.location.href = response.data.url;
     } catch (error) {
       console.error('Checkout error:', error);
-      alert('Payment setup failed. Please try again.');
+      console.error("[IAP][Pricing] Insights checkout failed", {
+        message: error?.message,
+        stack: error?.stack,
+      });
+      alert(`Payment failed: ${error?.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
   };
+
+  const visibleCorePlans = nativeRuntime
+    ? CORE_PLANS.filter((plan) => !!plan.iapProductId)
+    : CORE_PLANS;
+
+  const visibleInsightsPlans = nativeRuntime
+    ? INSIGHTS_PLANS.filter((plan) => !!plan.iapProductId3m || !!plan.iapProductIdYearly)
+    : INSIGHTS_PLANS;
 
   return (
     <div className="min-h-screen bg-white">
@@ -136,13 +296,21 @@ export default function Pricing() {
         <p className="text-xs font-semibold text-stone-400 uppercase tracking-widest mb-3">PRICING</p>
         <h1 className="text-3xl md:text-4xl font-bold text-stone-900 mb-3">Built for Individuals, Families,<br />and Ongoing Insight</h1>
         <p className="text-stone-500 text-sm md:text-base max-w-md mx-auto">Flexible options for capturing functional impact, tracking support needs, and building clearer evidence over time.</p>
+        {nativeRuntime && (
+          <p className="text-xs text-stone-400 mt-2">Native in-app purchase products only. Web subscriptions are hidden in the app.</p>
+        )}
       </div>
 
       {/* Core Plans */}
       <div className="max-w-4xl mx-auto px-4 pb-12">
         <p className="text-xs font-semibold text-stone-400 uppercase tracking-widest mb-4">CORE PLANS</p>
+        {nativeRuntime && visibleCorePlans.length === 0 && (
+          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            No StoreKit/Play products configured yet. Add VITE_IAP_PRODUCT_CORE_* env vars and rebuild.
+          </div>
+        )}
         <div className="grid md:grid-cols-2 gap-6">
-          {CORE_PLANS.map((plan) => (
+          {visibleCorePlans.map((plan) => (
             <div key={plan.name} className="rounded-2xl border border-stone-200 p-7 bg-white hover:shadow-md transition-all">
               <h2 className="text-xl font-bold text-stone-800 mb-1">{plan.name}</h2>
               <p className="text-sm text-stone-500 mb-5">{plan.description}</p>
@@ -280,9 +448,10 @@ export default function Pricing() {
           </div>
 
           {/* Insights plan cards */}
-          {INSIGHTS_PLANS.map((plan) => {
+          {visibleInsightsPlans.map((plan) => {
             const price = insightsBilling === "3monthly" ? plan.price3m : plan.priceYearly;
             const billingUnit = insightsBilling === "3monthly" ? "AUD" : "AUD / year";
+            const hasSelectedNativeProduct = insightsBilling === "3monthly" ? !!plan.iapProductId3m : !!plan.iapProductIdYearly;
             return (
               <div
                 key={plan.name}
@@ -320,14 +489,14 @@ export default function Pricing() {
                 )}
                 <button
                   onClick={() => handleInsightsCheckout(plan)}
-                  disabled={loading}
+                  disabled={loading || (nativeRuntime && !hasSelectedNativeProduct)}
                   className={`w-full py-3 rounded-xl font-semibold transition-colors mb-6 ${
                     plan.featured
                       ? "bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60"
                       : "border-2 border-stone-800 text-stone-800 hover:bg-stone-50 disabled:opacity-60"
                   }`}
                 >
-                  {loading ? "Processing..." : plan.buttonLabel}
+                  {loading ? "Processing..." : nativeRuntime && !hasSelectedNativeProduct ? "Unavailable in Store" : plan.buttonLabel}
                 </button>
                 <div className="space-y-3">
                   {plan.features.map((f) => (

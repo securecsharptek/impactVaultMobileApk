@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Sparkles, ArrowRight } from "lucide-react";
+import { X, Sparkles } from "lucide-react";
 
 const INSIGHTS_OPTIONS = {
   individual: {
@@ -38,6 +38,7 @@ export default function CheckoutUpsellModal({ isOpen, onClose, corePlan, foundin
   const handleProceed = () => {
     onCheckout({
       priceId: activePlan.priceId,
+      iapProductId: activePlan.iapProductId,
       planName: `${corePlan.name} ${foundingActive ? "Founding" : "Standard"}`,
       insightsPriceId: selectedInsights && !isFoundingPlan ? insightsPricing.priceId : null,
       insightsPlanName: selectedInsights && !isFoundingPlan ? insightsOption.name : null,
@@ -129,12 +130,11 @@ export default function CheckoutUpsellModal({ isOpen, onClose, corePlan, foundin
             )}
 
             <button
-              disabled={!isFoundingPlan && selectedInsights === null}
               onClick={() => {
                 if (isFoundingPlan) setSelectedInsights(false);
                 handleProceed();
               }}
-              disabled={loading}
+              disabled={loading || (!isFoundingPlan && selectedInsights === null)}
               className="w-full py-3 rounded-xl font-semibold bg-[#B6ADA5] text-white hover:bg-[#9A9089] disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
             >
               {loading ? "Processing..." : "Proceed to Payment →"}

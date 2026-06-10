@@ -12,7 +12,8 @@ dependencies {
     implementation project(':capacitor-firebase-authentication')
     implementation project(':capacitor-app')
     implementation project(':capacitor-browser')
-
+    implementation project(':capacitor-plugin-cdv-purchase')
+    implementation "com.android.billingclient:billing:8.3.0"
 }
 
 

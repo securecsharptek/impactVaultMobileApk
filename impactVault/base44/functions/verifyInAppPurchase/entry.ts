@@ -3,6 +3,12 @@ import { SignJWT, importPKCS8 } from 'npm:jose@5.9.3';
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 
+function mask(value?: string | null) {
+  if (!value) return value;
+  if (value.length <= 8) return `${value.slice(0, 2)}***`;
+  return `${value.slice(0, 4)}...${value.slice(-4)}`;
+}
+
 function parseJsonEnv(name: string, fallback: Record<string, unknown> = {}) {
   const raw = Deno.env.get(name);
   if (!raw) return fallback;
@@ -89,6 +95,11 @@ async function verifyAndroidPurchase({ packageName, purchaseToken }: { packageNa
     throw new Error('Android verification requires packageName and purchaseToken');
   }
 
+  console.log('[IAP][Backend] Verifying Android purchase', {
+    packageName,
+    purchaseToken: mask(purchaseToken),
+  });
+
   const accessToken = await getGoogleAccessToken();
   const endpoint = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${encodeURIComponent(packageName)}/purchases/subscriptionsv2/tokens/${encodeURIComponent(purchaseToken)}`;
 
@@ -102,6 +113,12 @@ async function verifyAndroidPurchase({ packageName, purchaseToken }: { packageNa
   if (!res.ok) {
     throw new Error(`Google verification failed: ${data.error?.message || 'unknown error'}`);
   }
+
+  console.log('[IAP][Backend] Android verification response received', {
+    productId: data?.lineItems?.[0]?.productId,
+    latestOrderId: data?.latestOrderId,
+    subscriptionState: data?.subscriptionState,
+  });
 
   const lineItem = data.lineItems?.[0] || {};
   const expiryTime = lineItem.expiryTime || null;
@@ -156,6 +173,11 @@ async function verifyApplePurchase({ transactionId, useSandbox }: { transactionI
     throw new Error('iOS verification requires transactionId');
   }
 
+  console.log('[IAP][Backend] Verifying Apple purchase', {
+    transactionId,
+    useSandbox,
+  });
+
   const token = await getAppleToken();
   const host = useSandbox ? 'https://api.storekit-sandbox.itunes.apple.com' : 'https://api.storekit.itunes.apple.com';
   const endpoint = `${host}/inApps/v1/transactions/${encodeURIComponent(transactionId)}`;
@@ -170,6 +192,11 @@ async function verifyApplePurchase({ transactionId, useSandbox }: { transactionI
   if (!res.ok) {
     throw new Error(`Apple verification failed: ${data.errorMessage || data.errorCode || 'unknown error'}`);
   }
+
+  console.log('[IAP][Backend] Apple verification response received', {
+    hasSignedTransactionInfo: !!data?.signedTransactionInfo,
+    useSandbox,
+  });
 
   const txInfo = decodeJwsPayload(data.signedTransactionInfo);
   const expiresAt = toIsoDate(txInfo.expiresDate || null);
@@ -219,16 +246,34 @@ async function upsertTransaction(base44: any, tx: Record<string, any>) {
     transaction_id: tx.transaction_id,
   });
 
+  console.log('[IAP][Backend] Upserting IAP transaction', {
+    platform: tx.platform,
+    transactionId: tx.transaction_id,
+    existingCount: existing.length,
+    user: tx.user_email,
+    productId: tx.product_id,
+    status: tx.status,
+  });
+
   if (existing.length > 0) {
     await base44.asServiceRole.entities.IapTransaction.update(existing[0].id, tx);
+    console.log('[IAP][Backend] Updated existing IAP transaction', {
+      id: existing[0].id,
+      transactionId: tx.transaction_id,
+    });
     return;
   }
 
   await base44.asServiceRole.entities.IapTransaction.create(tx);
+  console.log('[IAP][Backend] Created new IAP transaction', {
+    transactionId: tx.transaction_id,
+    productId: tx.product_id,
+  });
 }
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => {
   try {
+    console.log('[IAP][Backend] verifyInAppPurchase request received');
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
 
@@ -244,6 +289,16 @@ Deno.serve(async (req) => {
     const useSandbox = !!body.useSandbox;
     const fallbackProductId = body.productId || '';
 
+    console.log('[IAP][Backend] Parsed request payload', {
+      user: user.email,
+      platform,
+      packageName,
+      purchaseToken: mask(purchaseToken),
+      transactionId: appleTransactionId,
+      useSandbox,
+      fallbackProductId,
+    });
+
     if (platform !== 'ios' && platform !== 'android') {
       return Response.json({ error: 'platform must be ios or android' }, { status: 400 });
     }
@@ -252,6 +307,15 @@ Deno.serve(async (req) => {
       ? await verifyApplePurchase({ transactionId: appleTransactionId, useSandbox })
       : await verifyAndroidPurchase({ packageName, purchaseToken });
 
+    console.log('[IAP][Backend] Store verification completed', {
+      platform,
+      verifiedProductId: verified.productId,
+      transactionId: verified.transactionId,
+      originalTransactionId: verified.originalTransactionId,
+      status: verified.status,
+      expiresAt: verified.expiresAt,
+    });
+
     const productId = verified.productId || fallbackProductId;
     if (!productId) {
       return Response.json({ error: 'Could not resolve product ID from verification response' }, { status: 400 });
@@ -259,6 +323,11 @@ Deno.serve(async (req) => {
 
     const productMap = parseJsonEnv('IAP_PRODUCT_MAP', {});
     const entitlement = resolveEntitlement(productId, productMap as Record<string, any>);
+
+    console.log('[IAP][Backend] Entitlement resolved', {
+      productId,
+      entitlement,
+    });
 
     const userUpdates: Record<string, unknown> = {
       activatedAt: new Date().toISOString(),
@@ -276,6 +345,10 @@ Deno.serve(async (req) => {
     }
 
     if (verified.status === 'active' || verified.status === 'in_grace_period' || verified.status === 'on_hold') {
+      console.log('[IAP][Backend] Updating user entitlement fields', {
+        user: user.email,
+        userUpdates,
+      });
       await base44.auth.updateMe(userUpdates);
     }
 
@@ -302,6 +375,14 @@ Deno.serve(async (req) => {
       raw_store_state: verified.rawStoreState,
     });
 
+    console.log('[IAP][Backend] Verification flow completed successfully', {
+      user: user.email,
+      platform,
+      productId,
+      transactionId: verified.transactionId,
+      status: verified.status,
+    });
+
     return Response.json({
       success: true,
       platform,
@@ -319,8 +400,8 @@ Deno.serve(async (req) => {
         expires_at: verified.expiresAt,
       },
     });
-  } catch (error) {
-    console.error('verifyInAppPurchase error:', error.message);
-    return Response.json({ error: error.message }, { status: 500 });
+  } catch (error: any) {
+    console.error('[IAP][Backend] verifyInAppPurchase error:', error?.message || error);
+    return Response.json({ error: error?.message || 'Unknown verification error' }, { status: 500 });
   }
 });
