@@ -63,6 +63,8 @@ export async function initPurchases() {
   return initPromise;
 }
 
+const inFlightVerifications = new Map();
+
 async function verifyAndFinish(transaction) {
   const purchaseToken = transaction.purchaseId || transaction.transactionId;
   const productId = transaction.products?.[0]?.id;
@@ -71,18 +73,39 @@ async function verifyAndFinish(transaction) {
     return;
   }
 
-  const res = await base44.functions.invoke('verifyInAppPurchase', {
-    platform: 'android',
-    productId,
-    purchaseToken,
-    packageName: PACKAGE_NAME,
-  });
-
-  if (res?.data?.success) {
-    transaction.finish();
-  } else {
-    throw new Error(res?.data?.error || 'Server verification failed');
+  if (inFlightVerifications.has(purchaseToken)) {
+    return inFlightVerifications.get(purchaseToken);
   }
+
+  const promise = (async () => {
+    try {
+      const authToken =
+        (typeof window !== 'undefined' &&
+          (window.localStorage.getItem('base44_access_token') ||
+            window.localStorage.getItem('token'))) ||
+        null;
+
+      const res = await base44.functions.invoke('verifyInAppPurchase', {
+        platform: 'android',
+        productId,
+        purchaseToken,
+        packageName: PACKAGE_NAME,
+      }, {
+        ...(authToken ? { headers: { Authorization: `Bearer ${authToken}` } } : {}),
+      });
+
+      if (res?.data?.success) {
+        transaction.finish();
+      } else {
+        throw new Error(res?.data?.error || 'Server verification failed');
+      }
+    } finally {
+      inFlightVerifications.delete(purchaseToken);
+    }
+  })();
+
+  inFlightVerifications.set(purchaseToken, promise);
+  return promise;
 }
 
 /**
@@ -124,11 +147,18 @@ export async function purchaseSubscription(stripePriceId) {
 
   return new Promise((resolve, reject) => {
     let settled = false;
+
     const cleanup = () => {
       store.off(onApproved);
-      store.off(onVerified);
       store.off(onError);
     };
+
+    // Per-purchase approved handler.
+    // Calls verifyAndFinish — which is deduplicated by inFlightVerifications,
+    // so even though the global handler in initPurchases fires at the same time,
+    // only ONE HTTP call to verifyInAppPurchase is made. The second caller
+    // simply awaits the same in-flight Promise.
+    // Resolving here is what unblocks the "Processing..." UI state.
     const onApproved = store.when().approved(async (tx) => {
       try {
         await verifyAndFinish(tx);
@@ -137,7 +167,7 @@ export async function purchaseSubscription(stripePriceId) {
         if (!settled) { settled = true; cleanup(); reject(e); }
       }
     });
-    const onVerified = () => {};
+
     const onError = store.error((err) => {
       if (!settled) { settled = true; cleanup(); reject(new Error(err.message || 'Purchase failed')); }
     });

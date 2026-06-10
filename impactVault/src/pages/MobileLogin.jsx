@@ -5,13 +5,14 @@ import { authService } from '@/api/auth-service';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { signInWithGoogle, initializeGoogleAuth } from '@/lib/google-auth';
+import { Browser } from '@capacitor/browser';
 import { Mail, Lock, User, Eye, EyeOff, Loader, ArrowLeft, ArrowRight, Heart, Shield, HandHeart } from 'lucide-react';
 
 const MobileLogin = () => {
   const navigate = useNavigate();
   const { checkAppState, isAuthenticated } = useAuth();
   
-  const [screen, setScreen] = useState('auth'); // 'auth' or 'otp'
+  const [screen, setScreen] = useState('auth'); // 'auth', 'otp', or 'forgotPassword'
   const [mode, setMode] = useState('login'); // 'login' or 'signup'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,6 +24,7 @@ const MobileLogin = () => {
   const [success, setSuccess] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
   const [shouldNavigate, setShouldNavigate] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
 
   // Refs for OTP input fields
   const otpInputRefs = useRef([]);
@@ -330,6 +332,24 @@ const MobileLogin = () => {
     }
   };
 
+  // Open Base44 web login in the native browser (Capacitor Browser plugin)
+  // so the user can use the built-in Forgot Password link on the Base44 login page.
+  const openBrowserReset = async () => {
+    const webUrl = 'https://impact-vault-app-copy-09df371b.base44.app';
+    try {
+      await Browser.open({
+        url: webUrl,
+        presentationStyle: 'fullscreen',
+        windowName: '_blank',
+        toolbarColor: '#A07F5C'
+      });
+    } catch (err) {
+      console.error('[MobileLogin] Failed to open browser for password reset:', err);
+      // Fallback: window.open in a new tab
+      window.open(webUrl, '_blank');
+    }
+  };
+
   const handleGoogleOAuth = async () => {
     setError('');
     setSuccess('');
@@ -390,6 +410,86 @@ const MobileLogin = () => {
       setIsLoading(false);
     }
   };
+
+  // Forgot Password Screen — opens Base44 web app in browser (API not available on mobile)
+  const resetBack = () => {
+    setScreen('auth');
+    setResetEmail('');
+    setError('');
+  };
+
+  if (screen === 'forgotPassword') {
+    return (
+      <div
+        className="bg-[#F2EBDE]"
+        style={{ minHeight: '100vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
+      >
+        <div className="w-full max-w-md mx-auto px-6 pt-12 pb-10">
+
+          {/* Header */}
+          <div className="flex items-center mb-8">
+            <button onClick={resetBack} className="mr-4 p-2 rounded-lg">
+              <ArrowLeft className="w-5 h-5 text-[#5C5249]" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold text-[#2C2520]">Forgot Password</h1>
+              <p className="text-sm text-[#7A7066]">Reset via secure browser</p>
+            </div>
+          </div>
+
+          {/* Card */}
+          <div className="bg-white rounded-2xl shadow-lg p-6" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+            {/* Icon */}
+            <div className="flex flex-col items-center text-center" style={{ gap: '12px' }}>
+              <div className="w-16 h-16 bg-[#FFF3E0] rounded-full flex items-center justify-center">
+                <Lock className="w-7 h-7 text-[#A07F5C]" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-[#2C2520]">Reset Your Password</h2>
+                <p className="text-sm text-[#7A7066] mt-1 leading-relaxed">
+                  Password reset is handled securely through the Impact Vault web portal.
+                  Tap the button below — your browser will open and you can reset your password there.
+                </p>
+              </div>
+            </div>
+
+            {/* Steps */}
+            <div className="bg-[#FAF5EC] rounded-xl p-4" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {[
+                { n: '1', text: 'Tap "Open Web Portal" below' },
+                { n: '2', text: 'Click "Forgot Password" on the login page' },
+                { n: '3', text: 'Check your email for a reset link' },
+                { n: '4', text: 'Come back here and sign in with your new password' },
+              ].map(({ n, text }) => (
+                <div key={n} className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-[#A07F5C] flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-white text-xs font-bold">{n}</span>
+                  </div>
+                  <p className="text-sm text-[#5C5249]">{text}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* CTA */}
+            <button
+              type="button"
+              onClick={openBrowserReset}
+              className="w-full bg-[#A07F5C] text-white font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2"
+            >
+              <Mail className="w-4 h-4" />
+              Open Web Portal
+            </button>
+
+            <button type="button" onClick={resetBack}
+              className="text-sm text-[#5C5249] underline underline-offset-2">
+              Back to Sign In
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // OTP Verification Screen
   if (screen === 'otp') {
@@ -721,15 +821,21 @@ const MobileLogin = () => {
         </div>
 
         {/* Forgot Password */}
-        <div className="text-center mt-5">
-          <button
-            type="button"
-            onClick={() => setError('Password reset is not yet available. Please contact support.')}
-            className="text-sm text-[#5C5249] underline underline-offset-2 hover:text-[#2C2520]"
-          >
-            Forgot password?
-          </button>
-        </div>
+        {mode === 'login' && (
+          <div className="text-center mt-5">
+            <button
+              type="button"
+              onClick={() => {
+                setResetEmail(email);
+                setError('');
+                setScreen('forgotPassword');
+              }}
+              className="text-sm text-[#5C5249] underline underline-offset-2 hover:text-[#2C2520]"
+            >
+              Forgot password?
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

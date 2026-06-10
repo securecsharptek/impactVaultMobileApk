@@ -292,6 +292,71 @@ export const authService = {
   },
 
   /**
+   * Step 1: Request a password reset email
+   * POST /auth/forgot-password with { email }
+   * Base44 emails the user a reset token.
+   * @param {string} email - User email
+   * @returns {Promise<{success: boolean, message: string}>}
+   */
+  async requestPasswordReset(email) {
+    try {
+      const client = createAuthClient();
+      const response = await client.post('/auth/forgot-password', { email });
+
+      return {
+        success: true,
+        message: response.message || 'Password reset email sent. Please check your inbox.'
+      };
+    } catch (error) {
+      console.error('[authService] requestPasswordReset error:', error);
+
+      let errorMessage = 'Failed to send reset email';
+      if (error.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      throw { success: false, message: errorMessage, status: error.status, error };
+    }
+  },
+
+  /**
+   * Step 2: Confirm password reset with the token received by email
+   * POST /auth/reset-password with { email, reset_token, new_password }
+   * @param {string} email - User email
+   * @param {string} resetToken - Token from the reset email
+   * @param {string} newPassword - The new password to set
+   * @returns {Promise<{success: boolean, message: string}>}
+   */
+  async confirmPasswordReset(email, resetToken, newPassword) {
+    try {
+      const client = createAuthClient();
+      const response = await client.post('/auth/reset-password', {
+        email,
+        reset_token: resetToken,
+        new_password: newPassword
+      });
+
+      return {
+        success: true,
+        message: response.message || 'Password reset successfully. You can now sign in.'
+      };
+    } catch (error) {
+      console.error('[authService] confirmPasswordReset error:', error);
+
+      let errorMessage = 'Failed to reset password';
+      if (error.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      throw { success: false, message: errorMessage, status: error.status, error };
+    }
+  },
+
+  /**
    * Logout user
    * @returns {void}
    */
