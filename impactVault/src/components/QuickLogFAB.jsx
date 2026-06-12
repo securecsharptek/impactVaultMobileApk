@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { Plus, X, BookOpen, FolderOpen, Heart, Upload, Paperclip } from "lucide-react";
+import CarerCapacityForm from "./shared/CarerCapacityForm";
 
 // ── Constants (mirror pages) ──────────────────────────────────────────────────
 const IMPACT_TYPES = [
@@ -24,8 +25,6 @@ const SUPPORT_OPTIONS = [
   { value: "medical_support", label: "Medical support required" },
 ];
 const EVIDENCE_TYPES = ["school","therapy","medical","behaviour","other"];
-const CARER_PLANS_OPTIONS = ["Work", "Appointments or commitments", "Social plans", "Household responsibilities", "Sleep / rest", "Other"];
-const CARER_SUPPORT_OPTIONS = ["No", "Informal support", "Formal support"];
 const METRICS = [
   { key: "fatigue_level", label: "Fatigue", color: "#f59e0b" },
   { key: "emotional_load", label: "Emotional Load", color: "#ef4444" },
@@ -85,8 +84,8 @@ export default function QuickLogFAB() {
     <>
       {/* FAB */}
       <div
-        className="fixed right-6 z-40 flex flex-col items-end gap-3 md:bottom-6"
-        style={{ bottom: 'calc(env(safe-area-inset-bottom) + 6.5rem)' }}
+        className="quicklog-fab fixed right-6 z-40 flex flex-col items-end gap-3 md:bottom-6"
+        style={{ bottom: 'calc(env(safe-area-inset-bottom) + 8rem)' }}
       >
         {/* Action menu */}
         {menuOpen && (
@@ -117,7 +116,7 @@ export default function QuickLogFAB() {
         <EvidenceModal participants={participants} goals={goals} onClose={close} />
       )}
       {modal === "carer" && (
-        <CarerModal participants={participants} goals={goals} onClose={close} />
+        <CarerCapacityFormWrapper participants={participants} goals={goals} onClose={close} />
       )}
     </>
   );
@@ -134,7 +133,47 @@ function FabOption({ icon, label, color, onClick }) {
   );
 }
 
-// ── Modal shell ───────────────────────────────────────────────────────────────
+/**
+ * CarerCapacityFormWrapper — Wraps the shared form for use in QuickLogFAB
+ * Handles save logic and integrates with the FAB's modal system
+ */
+function CarerCapacityFormWrapper({ participants, goals, onClose }) {
+  const [form, setForm] = useState(EMPTY_CARER);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async (formData) => {
+    setSaving(true);
+    try {
+      await base44.entities.CarerCapacityLog.create({
+        ...formData,
+        fatigue_level: Number(formData.fatigue_level),
+        emotional_load: Number(formData.emotional_load),
+        sleep_impact: Number(formData.sleep_impact),
+        administrative_load: Number(formData.administrative_load),
+        carer_plans_impacted: formData.carer_plans_impacted || [],
+        additional_support_needed: formData.additional_support_needed || "No",
+      });
+      onClose();
+    } catch (err) {
+      console.error("[QuickLogFAB] CarerCapacityLog save failed:", err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <CarerCapacityForm
+      initialForm={form}
+      participants={participants}
+      goals={goals}
+      onClose={onClose}
+      onSave={handleSave}
+      saving={saving}
+      isModal={true}
+    />
+  );
+}
+
 function Modal({ title, onClose, onSave, saving, saveLabel, saveColor = "bg-amber-700 hover:bg-amber-800", children }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4 bg-black/30">
@@ -345,114 +384,6 @@ function EvidenceModal({ participants, goals, onClose }) {
           <input type="file" className="hidden" onChange={handleFile} accept="image/*,video/*,.pdf,.doc,.docx" />
         </label>
       </div>
-    </Modal>
-  );
-}
-
-// ── Carer Modal ───────────────────────────────────────────────────────────────
-function CarerModal({ participants, goals, onClose }) {
-  const [form, setForm] = useState(EMPTY_CARER);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-
-  const save = async () => {
-    if (!form.carer_name.trim()) {
-      setError("Please enter the caregiver's name.");
-      return;
-    }
-    setError("");
-    setSaving(true);
-    try {
-      await base44.entities.CarerCapacityLog.create({
-        ...form,
-        fatigue_level: Number(form.fatigue_level),
-        emotional_load: Number(form.emotional_load),
-        sleep_impact: Number(form.sleep_impact),
-        administrative_load: Number(form.administrative_load),
-        carer_plans_impacted: form.carer_plans_impacted || [],
-        additional_support_needed: form.additional_support_needed || "No",
-      });
-      onClose();
-    } catch (err) {
-      console.error("[QuickLogFAB] CarerCapacityLog save failed:", err);
-      setError(err?.message || "Could not save. Please try again.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const pGoals = goals.filter(g => g.participant_id === form.participant_id && g.status === "active");
-
-  return (
-    <Modal title="Log Caregiver Capacity" onClose={onClose} onSave={save} saving={saving} saveLabel="Save Entry" saveColor="bg-rose-600 hover:bg-rose-700">
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-700">
-          {error}
-        </div>
-      )}
-      <InputField label="Caregiver Name *" value={form.carer_name} onChange={v => setForm({ ...form, carer_name: v })} placeholder="Enter name…" />
-      <InputField label="Date" type="date" value={form.date} onChange={v => setForm({ ...form, date: v })} />
-      <SelectField label="Person Profile" value={form.participant_id} onChange={v => setForm({ ...form, participant_id: v, plan_goal_id: "" })} options={participants.map(p => ({ value: p.id, label: p.name }))} placeholder="None" />
-      {METRICS.map(m => (
-        <div key={m.key}>
-          <label className="block text-xs font-medium text-stone-600 mb-2">{m.label}</label>
-          <div className="flex gap-2">
-            {[1,2,3,4,5].map(n => (
-              <button key={n} type="button" onClick={() => setForm({ ...form, [m.key]: n })}
-                className={`flex-1 py-2 rounded-xl text-sm font-medium border transition-colors ${Number(form[m.key]) === n ? "text-white border-transparent" : "border-stone-200 text-stone-600 hover:border-stone-300"}`}
-                style={Number(form[m.key]) === n ? { backgroundColor: m.color, borderColor: m.color } : {}}>{n}</button>
-            ))}
-          </div>
-          <p className="text-xs text-stone-400 mt-1">1 = minimal · 5 = very high</p>
-        </div>
-      ))}
-      <div>
-        <label className="block text-xs font-medium text-stone-600 mb-2">Carer Plans Impacted</label>
-        <div className="space-y-2">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={(form.carer_plans_impacted || []).length === 0}
-              onChange={(e) => setForm({ ...form, carer_plans_impacted: e.target.checked ? [] : form.carer_plans_impacted })}
-              className="rounded border-stone-300"
-            />
-            <span className="text-sm text-stone-600">None</span>
-          </label>
-          {CARER_PLANS_OPTIONS.map((plan) => (
-            <label key={plan} className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={(form.carer_plans_impacted || []).includes(plan)}
-                onChange={() => togglePlan(plan)}
-                className="rounded border-stone-300"
-              />
-              <span className="text-sm text-stone-600">{plan}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-stone-600 mb-2">Was additional support needed?</label>
-        <div className="space-y-2">
-          {CARER_SUPPORT_OPTIONS.map((option) => (
-            <label key={option} className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="carer-support"
-                value={option}
-                checked={form.additional_support_needed === option}
-                onChange={(e) => setForm({ ...form, additional_support_needed: e.target.value })}
-                className="rounded-full border-stone-300"
-              />
-              <span className="text-sm text-stone-600">{option}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-      {pGoals.length > 0 && (
-        <SelectField label="Linked Goal" value={form.plan_goal_id} onChange={v => setForm({ ...form, plan_goal_id: v })} options={pGoals.map(g => ({ value: g.id, label: g.title }))} placeholder="None" />
-      )}
-      <TextareaField label="Notes" value={form.notes} onChange={v => setForm({ ...form, notes: v })} />
     </Modal>
   );
 }

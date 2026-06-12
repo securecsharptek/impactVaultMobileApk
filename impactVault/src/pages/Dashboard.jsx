@@ -18,6 +18,7 @@ import ImprovedQuickCapture from "../components/dashboard/ImprovedQuickCapture";
 import usePullToRefresh from "../hooks/usePullToRefresh";
 import { isNativeRuntime, getPlatform } from "../lib/native-auth";
 import { initPurchases, purchaseSubscription } from "../lib/purchase-service";
+import { IAP_PRODUCTS } from "../lib/iap-products";
 import { appParams } from "../lib/app-params";
 
 const CORE_PLANS = [

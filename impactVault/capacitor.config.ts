@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.impactvault.app',
-  appName: 'impactVault',
+  appName: 'Impact Vault',
   webDir: 'dist',
   server: {
     // Allow navigation to Base44 domain, localhost, and deep links

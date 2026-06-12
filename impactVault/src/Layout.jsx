@@ -156,8 +156,8 @@ export default function Layout({ children, currentPageName }) {
     <div className="min-h-screen bg-[#FAFAF9] font-sans" style={{fontFamily: "'Inter', system-ui, sans-serif"}}>
       <style>{`
         :root {
-          --color-brand: #C4975A;
-          --color-brand-dark: #A87D42;
+          --color-brand: #B6ADA5;
+          --color-brand-dark: #9A9089;
           --color-surface: #FAFAF9;
           --color-muted: #F4F2F0;
         }
@@ -182,21 +182,23 @@ export default function Layout({ children, currentPageName }) {
       >
         <div className="max-w-5xl mx-auto px-5 md:px-6 h-14 flex items-center justify-between">
           {/* Left: back button (mobile) or logo */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 text-[#7A726C]">
             {location.pathname !== '/' && (
               <button
                 onClick={() => navigate(-1)}
                 className="md:hidden p-2 rounded-lg hover:bg-stone-100 -ml-1"
                 aria-label="Go back"
               >
-                <ChevronLeft className="w-5 h-5 text-stone-600" />
+                <ChevronLeft className="w-5 h-5 text-[#7A726C]" />
               </button>
             )}
-            <img
-              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69abba91a39ae7e3c2b27293/a6b63ebfa_Impactvault-whitebackground.jpg"
-              alt="Impact Vault"
-              className="w-7 h-7 rounded-lg object-cover hidden md:block"
-            />
+            <div className="hidden md:inline-flex items-center justify-center rounded-2xl bg-[#F0EDEB] p-1">
+              <img
+                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69abba91a39ae7e3c2b27293/a6b63ebfa_Impactvault-whitebackground.jpg"
+                alt="Impact Vault"
+                className="w-7 h-7 rounded-lg object-cover"
+              />
+            </div>
           </div>
           <button
             className="md:hidden p-2 rounded-lg hover:bg-stone-100"
@@ -288,15 +290,17 @@ export default function Layout({ children, currentPageName }) {
       {mobileOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-black/30" onClick={() => setMobileOpen(false)} />
-          <div className="absolute left-0 top-0 bottom-0 w-64 bg-white shadow-xl flex flex-col">
-            <div className="h-14 flex items-center px-4 border-b border-stone-100">
-              <div className="flex items-center gap-2.5">
-                <img
-                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69abba91a39ae7e3c2b27293/a6b63ebfa_Impactvault-whitebackground.jpg"
-                  alt="Impact Vault"
-                  className="w-8 h-8 rounded-lg object-cover"
-                />
-                <span className="font-semibold text-stone-700">Impact Vault</span>
+          <div className="absolute left-0 top-0 bottom-0 w-64 bg-white shadow-xl flex flex-col" style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)', paddingBottom: 'max(env(safe-area-inset-bottom), 12px)' }}>
+            <div className="flex items-center px-4 border-b border-stone-100" style={{ minHeight: '56px', paddingTop: 'max(env(safe-area-inset-top), 16px)' }}>
+              <div className="flex items-center gap-3 text-[#7A726C]">
+                <div className="rounded-2xl bg-[#F0EDEB] p-1">
+                  <img
+                    src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69abba91a39ae7e3c2b27293/a6b63ebfa_Impactvault-whitebackground.jpg"
+                    alt="Impact Vault"
+                    className="w-9 h-9 rounded-xl object-cover"
+                  />
+                </div>
+                <span className="font-semibold text-[#7A726C]">Impact Vault</span>
               </div>
             </div>
             <nav className="flex flex-col gap-1 p-3 flex-1">

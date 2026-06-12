@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, Heart, X, Trash2 } from "lucide-react";
+import { Plus, Heart, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import HelpButton from "../components/shared/HelpButton";
+import CarerCapacityForm from "../components/shared/CarerCapacityForm";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import PageHeader from "../components/shared/PageHeader";
 import EmptyState from "../components/shared/EmptyState";
@@ -10,9 +11,6 @@ import { parseISO, format, subDays } from "date-fns";
 import { todayLocal } from "@/utils";
 
 const EMPTY = { carer_name: "", participant_id: "", plan_goal_id: "", date: todayLocal(), fatigue_level: 3, emotional_load: 3, sleep_impact: 3, administrative_load: 3, carer_plans_impacted: [], additional_support_needed: "No", notes: "" };
-
-const PLANS_OPTIONS = ["Work", "Appointments or commitments", "Social plans", "Household responsibilities", "Sleep / rest", "Other"];
-const SUPPORT_OPTIONS = ["No", "Informal support", "Formal support"];
 
 const METRICS = [
   { key: "fatigue_level", label: "Fatigue", color: "#f59e0b" },
@@ -44,16 +42,19 @@ export default function CarerCapacity() {
 
   useEffect(() => { load(); }, []);
 
-  const save = async () => {
-    if (!form.carer_name.trim()) {
-      toast.error("Please enter a carer name.");
-      return;
-    }
+  const save = async (formData) => {
     setSaving(true);
 
     // Optimistic update
     const tempId = `temp-${Date.now()}`;
-    const optimisticEntry = { ...form, fatigue_level: Number(form.fatigue_level), emotional_load: Number(form.emotional_load), sleep_impact: Number(form.sleep_impact), administrative_load: Number(form.administrative_load), id: tempId };
+    const optimisticEntry = { 
+      ...formData, 
+      fatigue_level: Number(formData.fatigue_level), 
+      emotional_load: Number(formData.emotional_load), 
+      sleep_impact: Number(formData.sleep_impact), 
+      administrative_load: Number(formData.administrative_load), 
+      id: tempId 
+    };
     setLogs((prev) => [optimisticEntry, ...prev]);
     setShowForm(false);
     setForm(EMPTY);
@@ -134,84 +135,17 @@ export default function CarerCapacity() {
         </div>
       )}
 
-      {/* Form */}
+      {/* Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4 bg-black/30">
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-5 border-b border-stone-100">
-              <h2 className="font-semibold text-stone-800">Capture Carer Capacity</h2>
-              <button onClick={() => setShowForm(false)}><X className="w-5 h-5 text-stone-400" /></button>
-            </div>
-            <div className="p-5 space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-stone-600 mb-1">Carer Name *</label>
-                <input type="text" value={form.carer_name} onChange={(e) => setForm({ ...form, carer_name: e.target.value })} placeholder="Enter carer name…" className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-300" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-stone-600 mb-1">Date</label>
-                <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-300" />
-              </div>
-              {METRICS.map((m) => (
-               <ScaleField key={m.key} label={m.label} value={form[m.key]} onChange={(v) => setForm({ ...form, [m.key]: v })} color={m.color} />
-              ))}
-              <div>
-                <label className="block text-xs font-medium text-stone-600 mb-2">Carer Plans Impacted</label>
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" checked={form.carer_plans_impacted?.length === 0} onChange={(e) => setForm({ ...form, carer_plans_impacted: e.target.checked ? [] : form.carer_plans_impacted })} className="rounded border-stone-300" />
-                    <span className="text-sm text-stone-600">None</span>
-                  </label>
-                  {PLANS_OPTIONS.map((plan) => (
-                    <label key={plan} className="flex items-center gap-2">
-                      <input type="checkbox" checked={form.carer_plans_impacted?.includes(plan)} onChange={(e) => {
-                        let updated = form.carer_plans_impacted || [];
-                        if (e.target.checked) {
-                          updated = [...updated.filter(p => p !== "None"), plan];
-                        } else {
-                          updated = updated.filter(p => p !== plan);
-                        }
-                        setForm({ ...form, carer_plans_impacted: updated });
-                      }} className="rounded border-stone-300" />
-                      <span className="text-sm text-stone-600">{plan}</span>
-                    </label>
-                  ))}
-                </div>
-                </div>
-                <div>
-                <label className="block text-xs font-medium text-stone-600 mb-2">Was additional support needed?</label>
-                <div className="space-y-2">
-                  {SUPPORT_OPTIONS.map((option) => (
-                    <label key={option} className="flex items-center gap-2">
-                      <input type="radio" name="support" value={option} checked={form.additional_support_needed === option} onChange={(e) => setForm({ ...form, additional_support_needed: e.target.value })} className="rounded-full border-stone-300" />
-                      <span className="text-sm text-stone-600">{option}</span>
-                    </label>
-                  ))}
-                </div>
-                </div>
-                {participantGoals.length > 0 && (
-                <div>
-                  <label className="block text-xs font-medium text-stone-600 mb-1">Linked Plan Goal</label>
-                  <div className="flex flex-col gap-2">
-                    <button type="button" onClick={() => setForm({ ...form, plan_goal_id: "" })} className={`text-left px-3 py-2 rounded-xl text-sm font-medium border transition-colors ${!form.plan_goal_id ? "bg-amber-700 text-white border-amber-700" : "border-stone-200 text-stone-600 hover:border-amber-300 bg-white"}`}>None</button>
-                    {participantGoals.map((g) => (
-                      <button key={g.id} type="button" onClick={() => setForm({ ...form, plan_goal_id: g.id })} className={`text-left px-3 py-2 rounded-xl text-sm font-medium border transition-colors ${form.plan_goal_id === g.id ? "bg-amber-700 text-white border-amber-700" : "border-stone-200 text-stone-600 hover:border-amber-300 bg-white"}`}>{g.title}</button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div>
-                <label className="block text-xs font-medium text-stone-600 mb-1">Notes</label>
-                <textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-300 resize-none" />
-              </div>
-            </div>
-            <div className="flex gap-3 p-5 border-t border-stone-100">
-              <button onClick={() => setShowForm(false)} className="flex-1 py-2.5 border border-stone-200 rounded-xl text-sm text-stone-600 hover:bg-stone-50">Cancel</button>
-              <button onClick={save} disabled={saving} className="flex-1 py-2.5 bg-rose-600 text-white rounded-xl text-sm hover:bg-rose-700 disabled:opacity-60">
-                {saving ? "Saving…" : "Save Capacity Update"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <CarerCapacityForm
+          initialForm={form}
+          participants={participants}
+          goals={goals}
+          onClose={() => setShowForm(false)}
+          onSave={save}
+          saving={saving}
+          isModal={true}
+        />
       )}
 
       {loading ? (
@@ -252,28 +186,6 @@ export default function CarerCapacity() {
           })}
         </div>
       )}
-    </div>
-  );
-}
-
-function ScaleField({ label, value, onChange }) {
-  const colors = {
-    1: "bg-stone-300 text-white border-stone-300",
-    2: "bg-green-500 text-white border-green-500",
-    3: "bg-amber-400 text-white border-amber-400",
-    4: "bg-orange-500 text-white border-orange-500",
-    5: "bg-red-500 text-white border-red-500",
-  };
-
-  return (
-    <div>
-      <label className="block text-xs font-medium text-stone-600 mb-2">{label}</label>
-      <div className="flex gap-2">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <button key={n} type="button" onClick={() => onChange(n)} className={`flex-1 py-2 rounded-xl text-sm font-medium border transition-colors ${Number(value) === n ? colors[n] : "border-stone-200 text-stone-600 hover:border-stone-300"}`}>{n}</button>
-        ))}
-      </div>
-      <p className="text-xs text-stone-400 mt-1">1 = minimal · 5 = severe</p>
     </div>
   );
 }

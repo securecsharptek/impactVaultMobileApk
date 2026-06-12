@@ -150,3 +150,14 @@
     --ring: 0 0% 83.1%;
   }
 }
+
+/* Hide the floating FAB while a modal is open (controlled via body.modal-open) */
+body.modal-open .quicklog-fab {
+  display: none !important;
+}
+
+/* Ensure modals occupy the available width on small screens while keeping rounded corners */
+.modal-fullwidth {
+  margin-left: 12px;
+  margin-right: 12px;
+}

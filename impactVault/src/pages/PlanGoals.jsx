@@ -140,8 +140,8 @@ export default function PlanGoals() {
 
       {/* New Plan Period Modal */}
       {showPeriodModal && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4 bg-black/30">
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-start md:items-center justify-center p-0 md:p-4 bg-black/30 overflow-y-auto overflow-x-hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)', paddingTop: 'env(safe-area-inset-top)', touchAction: 'pan-y' }}>
+          <div className="bg-white rounded-t-3xl md:rounded-2xl w-full max-w-full md:max-w-lg shadow-xl mt-10 md:my-auto max-h-[calc(100vh-3.5rem)] overflow-y-auto overflow-x-hidden min-w-0" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 3rem)' }}>
             <div className="flex items-center justify-between p-5 border-b border-stone-100">
               <h2 className="font-semibold text-stone-800">Start New Plan Period</h2>
               <button onClick={() => setShowPeriodModal(false)}><X className="w-5 h-5 text-stone-400" /></button>
@@ -197,8 +197,8 @@ export default function PlanGoals() {
       )}
 
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4 bg-black/30">
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-start md:items-center justify-center p-0 md:p-4 bg-black/30 overflow-y-auto overflow-x-hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)', paddingTop: 'env(safe-area-inset-top)', touchAction: 'pan-y' }}>
+          <div className="bg-white rounded-t-3xl md:rounded-2xl w-full max-w-full md:max-w-lg shadow-xl mt-10 md:my-auto max-h-[calc(100vh-3.5rem)] overflow-y-auto overflow-x-hidden min-w-0" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 5.5rem)' }}>
             <div className="flex items-center justify-between p-5 border-b border-stone-100">
               <h2 className="font-semibold text-stone-800">{editing ? "Edit Goal" : "New Plan Goal"}</h2>
               <button onClick={() => setShowForm(false)}><X className="w-5 h-5 text-stone-400" /></button>

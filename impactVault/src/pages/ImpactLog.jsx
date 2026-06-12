@@ -276,8 +276,8 @@ export default function ImpactLog() {
 
       {/* Form */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4 bg-black/30 overflow-y-auto">
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl my-auto max-h-[95vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-start md:items-center justify-center p-0 md:p-4 bg-black/30 overflow-y-auto overflow-x-hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)', paddingTop: 'env(safe-area-inset-top)', touchAction: 'pan-y' }}>
+          <div className="bg-white rounded-t-3xl md:rounded-2xl w-full max-w-full md:max-w-lg shadow-xl mt-10 md:my-auto max-h-[calc(100vh-3.5rem)] overflow-y-auto overflow-x-hidden min-w-0" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 5.5rem)' }}>
             <div className="flex items-center justify-between p-5 border-b border-stone-100">
               <h2 className="font-semibold text-stone-800">{editingId ? "Edit Impact Entry" : "Capture Functional Impact"}</h2>
               <button onClick={() => setShowForm(false)}><X className="w-5 h-5 text-stone-400" /></button>
@@ -293,7 +293,7 @@ export default function ImpactLog() {
                <h3 className="text-xs font-semibold text-stone-700 uppercase tracking-wide">Basic Info</h3>
                <div>
                  <label className="block text-xs font-medium text-stone-600 mb-1">Person Profile *</label>
-                 <div className="flex flex-wrap gap-2">
+                 <div className="flex flex-wrap gap-2 min-w-0">
                    {participants.map((p) => (
                      <button key={p.id} type="button" onClick={() => setForm({ ...form, participant_id: p.id, plan_goal_id: "" })} className={`px-3 py-2 rounded-xl text-sm font-medium border transition-colors ${form.participant_id === p.id ? "bg-amber-700 text-white border-amber-700" : "border-stone-200 text-stone-600 hover:border-amber-300 bg-white"}`}>{p.name}</button>
                    ))}
@@ -302,7 +302,7 @@ export default function ImpactLog() {
                <Field label="Date *" type="date" value={form.date} onChange={(v) => setForm({ ...form, date: v })} />
                <div>
                  <label className="block text-xs font-medium text-stone-600 mb-1.5">Reported By *</label>
-                 <div className="flex flex-wrap gap-1.5 md:gap-2">
+                 <div className="flex flex-wrap gap-1.5 md:gap-2 min-w-0">
                    {REPORTED_BY_OPTIONS.map((option) => (
                      <button
                        key={option}
@@ -322,7 +322,7 @@ export default function ImpactLog() {
                </div>
                <div>
                  <label className="block text-xs font-medium text-stone-600 mb-1">Time of Day *</label>
-                 <div className="grid grid-cols-4 gap-2">
+                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                    {["Morning", "Afternoon", "Evening", "Night"].map((t) => (
                      <button key={t} type="button" onClick={() => setForm({ ...form, environment: t.toLowerCase() })} className={`py-2 rounded-xl text-xs font-medium border transition-colors ${form.environment === t.toLowerCase() ? "bg-amber-700 text-white border-amber-700" : "border-stone-200 text-stone-600 hover:border-amber-300"}`}>{t}</button>
                    ))}
@@ -446,7 +446,7 @@ export default function ImpactLog() {
                   </div>
                 )}
                 {/* Evidence entry row */}
-                <div className="space-y-2 bg-stone-50 rounded-xl p-3">
+                <div className="space-y-2 bg-stone-50 rounded-xl p-3 min-w-0">
                   <div className="flex gap-2 min-w-0">
                     <input
                       type="text"
@@ -497,7 +497,7 @@ export default function ImpactLog() {
                 </div>
               </div>
             </div>
-            <div className="flex gap-2 p-4 md:p-5 border-t border-stone-100">
+            <div className="flex gap-2 p-4 md:p-5 border-t border-stone-100 bg-white" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
               <button onClick={() => setShowForm(false)} className="flex-1 py-2 md:py-2.5 border border-stone-200 rounded-xl text-xs md:text-sm text-stone-600 hover:bg-stone-50">Cancel</button>
               <button onClick={save} disabled={saving} className="flex-1 py-2 md:py-2.5 bg-amber-700 text-white rounded-xl text-xs md:text-sm hover:bg-amber-800 disabled:opacity-60">
                 {saving ? "Saving…" : editingId ? "Update Entry" : "Save Impact"}
