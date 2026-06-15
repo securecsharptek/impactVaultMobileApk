@@ -32,7 +32,7 @@ const getAppParamValue = (paramName, { defaultValue = undefined, removeFromUrl =
 		storage.setItem(storageKey, searchParam);
 		return searchParam;
 	}
-	if (defaultValue) {
+	if (defaultValue !== undefined) {
 		storage.setItem(storageKey, defaultValue);
 		return defaultValue;
 	}
@@ -49,8 +49,7 @@ const getAppParams = () => {
 		storage.removeItem('token');
 	}
 	const bypassPaywallParam = getAppParamValue("bypass_paywall", {
-		// Temporary default: bypass paywall unless explicitly turned off.
-		defaultValue: import.meta.env.VITE_BYPASS_PAYWALL ?? "true",
+		defaultValue: import.meta.env.VITE_BYPASS_PAYWALL ?? "false",
 	});
 	return {
 		appId: getAppParamValue("app_id", { defaultValue: import.meta.env.VITE_BASE44_APP_ID }),
@@ -58,7 +57,7 @@ const getAppParams = () => {
 		fromUrl: getAppParamValue("from_url", { defaultValue: window.location.href }),
 		functionsVersion: getAppParamValue("functions_version", { defaultValue: import.meta.env.VITE_BASE44_FUNCTIONS_VERSION }),
 		appBaseUrl: getAppParamValue("app_base_url", { defaultValue: import.meta.env.VITE_BASE44_APP_BASE_URL }),
-		bypassPaywall: toBoolean(bypassPaywallParam, true),
+		bypassPaywall: toBoolean(bypassPaywallParam, false),
 	}
 }
 

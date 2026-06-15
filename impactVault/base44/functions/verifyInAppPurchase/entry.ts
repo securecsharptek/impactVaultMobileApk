@@ -179,16 +179,40 @@ async function verifyApplePurchase({ transactionId, useSandbox }: { transactionI
   });
 
   const token = await getAppleToken();
-  const host = useSandbox ? 'https://api.storekit-sandbox.itunes.apple.com' : 'https://api.storekit.itunes.apple.com';
-  const endpoint = `${host}/inApps/v1/transactions/${encodeURIComponent(transactionId)}`;
+  const preferredHost = useSandbox
+    ? 'https://api.storekit-sandbox.itunes.apple.com'
+    : 'https://api.storekit.itunes.apple.com';
+  const fallbackHost = useSandbox
+    ? 'https://api.storekit.itunes.apple.com'
+    : 'https://api.storekit-sandbox.itunes.apple.com';
 
-  const res = await fetch(endpoint, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const fetchTransaction = async (host: string) => {
+    const endpoint = `${host}/inApps/v1/transactions/${encodeURIComponent(transactionId)}`;
+    const res = await fetch(endpoint, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const data = await res.json();
+    return { res, data, host };
+  };
 
-  const data = await res.json();
+  let { res, data, host } = await fetchTransaction(preferredHost);
+  if (!res.ok) {
+    console.warn('[IAP][Backend] Apple verification failed on preferred host, retrying alternate host', {
+      transactionId,
+      preferredHost,
+      fallbackHost,
+      status: res.status,
+      errorCode: data?.errorCode,
+      errorMessage: data?.errorMessage,
+    });
+    const retry = await fetchTransaction(fallbackHost);
+    res = retry.res;
+    data = retry.data;
+    host = retry.host;
+  }
+
   if (!res.ok) {
     throw new Error(`Apple verification failed: ${data.errorMessage || data.errorCode || 'unknown error'}`);
   }
@@ -196,6 +220,7 @@ async function verifyApplePurchase({ transactionId, useSandbox }: { transactionI
   console.log('[IAP][Backend] Apple verification response received', {
     hasSignedTransactionInfo: !!data?.signedTransactionInfo,
     useSandbox,
+    verifiedHost: host,
   });
 
   const txInfo = decodeJwsPayload(data.signedTransactionInfo);
