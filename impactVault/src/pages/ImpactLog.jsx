@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Plus, BookOpen, X, Trash2, Upload, Paperclip, Pencil, LayoutGrid, AlignJustify, GitCommit, Archive, RefreshCw } from "lucide-react";
 import { todayLocal } from "@/utils";
@@ -59,6 +60,8 @@ const EVIDENCE_TYPES = ["Document", "Photo", "Email", "Report", "Assessment", "O
 
 
 export default function ImpactLog() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [logs, setLogs] = useState([]);
   const [participants, setParticipants] = useState([]);
   const [goals, setGoals] = useState([]);
@@ -93,6 +96,13 @@ export default function ImpactLog() {
   const { containerRef, pulling, pullDistance, refreshing } = usePullToRefresh(load);
 
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    if (location.state?.openNewImpact) {
+      openNew();
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate]);
 
   const openNew = () => { setForm(EMPTY); setEditingId(null); setEvidenceList([]); setEvidenceForm(EMPTY_EVIDENCE); setShowForm(true); };
 

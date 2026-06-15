@@ -46,6 +46,7 @@ function today() {
 
 // ── Main FAB Component ────────────────────────────────────────────────────────
 export default function QuickLogFAB() {
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [modal, setModal] = useState(null); // "impact" | "evidence" | "carer"
   const [participants, setParticipants] = useState([]);
@@ -72,6 +73,11 @@ export default function QuickLogFAB() {
   }, []);
 
   const open = (type) => {
+    if (type === "impact") {
+      setMenuOpen(false);
+      navigate(createPageUrl("ImpactLog"), { state: { openNewImpact: true } });
+      return;
+    }
     setModal(type);
     setMenuOpen(false);
     // Refresh on every open so a newly added participant appears immediately
