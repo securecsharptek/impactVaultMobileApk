@@ -33,7 +33,7 @@ VITE_IAP_PRODUCT_INSIGHTS_FAMILY_YEARLY=
 VITE_IAP_USE_SANDBOX=true
 
 # Needed for Android server-side verification payload
-VITE_ANDROID_PACKAGE_NAME=com.impactvault.app
+VITE_ANDROID_PACKAGE_NAME=com.vault.impactVault
 
 e.g.
 VITE_BASE44_APP_ID=cbef744a8545c389ef439ea6

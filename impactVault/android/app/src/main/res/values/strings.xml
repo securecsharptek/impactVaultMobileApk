@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">impactVault</string>
-    <string name="title_activity_main">impactVault</string>
+    <string name="app_name">Impact Vault</string>
+    <string name="title_activity_main">Impact Vault</string>
     <string name="package_name">com.vault.impactVault</string>
     <string name="custom_url_scheme">com.vault.impactVault</string>
 </resources>

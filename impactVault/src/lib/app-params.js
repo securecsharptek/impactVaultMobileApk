@@ -32,7 +32,7 @@ const getAppParamValue = (paramName, { defaultValue = undefined, removeFromUrl =
 		storage.setItem(storageKey, searchParam);
 		return searchParam;
 	}
-	if (defaultValue) {
+	if (defaultValue !== undefined) {
 		storage.setItem(storageKey, defaultValue);
 		return defaultValue;
 	}
@@ -49,8 +49,7 @@ const getAppParams = () => {
 		storage.removeItem('token');
 	}
 	const bypassPaywallParam = getAppParamValue("bypass_paywall", {
-		// Default enabled to unblock app-store screenshot capture flows.
-		defaultValue: import.meta.env.VITE_BYPASS_PAYWALL ?? "true",
+		defaultValue: import.meta.env.VITE_BYPASS_PAYWALL ?? "false",
 	});
 	return {
 		appId: getAppParamValue("app_id", { defaultValue: import.meta.env.VITE_BASE44_APP_ID }),

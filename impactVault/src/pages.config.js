@@ -55,6 +55,7 @@ import Evidence from './pages/Evidence';
 import Help from './pages/Help';
 import ImpactLog from './pages/ImpactLog';
 import Insights from './pages/Insights';
+import InsightsPricing from './pages/InsightsPricing';
 import Participants from './pages/Participants';
 import PlanGoals from './pages/PlanGoals';
 import Pricing from './pages/Pricing';
@@ -72,6 +73,7 @@ export const PAGES = {
     "Help": Help,
     "ImpactLog": ImpactLog,
     "Insights": Insights,
+    "InsightsPricing": InsightsPricing,
     "Participants": Participants,
     "PlanGoals": PlanGoals,
     "Pricing": Pricing,

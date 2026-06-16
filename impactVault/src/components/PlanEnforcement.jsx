@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { appParams } from "@/lib/app-params";
 import { AlertCircle, ArrowRight } from "lucide-react";
 import { createPageUrl } from "@/utils";
 
@@ -23,6 +24,7 @@ export function usePlanLimit() {
   }, []);
 
   const getProfileLimit = () => {
+    if (appParams.bypassPaywall) return null;
     if (!plan) return null;
     if (plan.toLowerCase().includes('family')) return 3;
     if (plan.toLowerCase().includes('core')) return 1;

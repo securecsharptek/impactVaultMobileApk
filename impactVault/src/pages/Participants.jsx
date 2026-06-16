@@ -40,6 +40,13 @@ export default function Participants() {
   const openNew = () => { setEditing(null); setForm(EMPTY); setShowForm(true); };
   const openEdit = (p) => { setEditing(p); setForm({ name: p.name, dob: p.dob || "", diagnoses: p.diagnoses || "", carer_name: p.carer_name || "", carer_email: p.carer_email || "", plan_start_date: p.plan_start_date || "", plan_end_date: p.plan_end_date || "", no_plan: p.no_plan || false, plan_document_url: p.plan_document_url || "", plan_document_name: p.plan_document_name || "", plan_history: p.plan_history || [] }); setShowForm(true); };
 
+  // Toggle a body class so global UI (like FAB) can hide when modal is open
+  useEffect(() => {
+    if (showForm) document.body.classList.add('modal-open');
+    else document.body.classList.remove('modal-open');
+    return () => { document.body.classList.remove('modal-open'); };
+  }, [showForm]);
+
   const startNewPlanPeriod = () => {
     if (!editing) return;
     // Archive current plan into history — copy array first to avoid mutation
@@ -95,10 +102,10 @@ export default function Participants() {
       {/* Form modal */}
       {showForm && (
         <div
-          className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-4 bg-black/30"
-          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 5.5rem)', paddingTop: 'max(env(safe-area-inset-top), 1rem)' }}
+          className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-4 bg-black/30 overflow-y-auto overflow-x-hidden"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 5.5rem)', paddingTop: 'max(env(safe-area-inset-top), 1rem)', touchAction: 'pan-y', overscrollBehavior: 'contain' }}
         >
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl flex flex-col max-h-full">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl flex flex-col max-h-full overflow-x-hidden z-[99999] mx-3" style={{ left: 0, right: 0 }}>
             <div className="flex items-center justify-between p-5 border-b border-stone-100 shrink-0">
               <h2 className="font-semibold text-stone-800">{editing ? "Edit Profile" : "New Person Profile"}</h2>
               <button onClick={() => setShowForm(false)}><X className="w-5 h-5 text-stone-400" /></button>
@@ -188,7 +195,7 @@ export default function Participants() {
                 )}
               </div>
             </div>
-            <div className="flex gap-3 p-5 border-t border-stone-100 shrink-0 bg-white rounded-b-2xl">
+            <div className="flex gap-3 p-5 border-t border-stone-100 shrink-0 bg-white rounded-b-2xl sticky bottom-0" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}>
               <button onClick={() => setShowForm(false)} className="flex-1 py-2.5 border border-stone-200 rounded-xl text-sm text-stone-600 hover:bg-stone-50">Cancel</button>
               <button onClick={save} disabled={saving} className="flex-1 py-2.5 bg-amber-700 text-white rounded-xl text-sm hover:bg-amber-800 disabled:opacity-60">
                 {saving ? "Saving…" : editing ? "Save Changes" : "Create Profile"}

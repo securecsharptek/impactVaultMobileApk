@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, Check, X } from "lucide-react";
 
 /**
@@ -31,14 +32,14 @@ export default function MobileSelect({ value, onChange, options = [], placeholde
       </button>
 
       {/* Bottom sheet backdrop + drawer */}
-      {open && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end" onClick={() => setOpen(false)}>
+      {open && createPortal(
+        <div className="fixed inset-0 z-[9999] flex flex-col justify-end" onClick={() => setOpen(false)}>
           <div
             className="absolute inset-0 bg-black/40"
             aria-hidden="true"
           />
           <div
-            className="relative bg-white rounded-t-2xl shadow-xl max-h-[70vh] flex flex-col"
+            className="relative bg-white rounded-t-2xl shadow-xl max-h-[70vh] flex flex-col overflow-x-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Handle + header */}
@@ -73,7 +74,8 @@ export default function MobileSelect({ value, onChange, options = [], placeholde
             {/* Safe area spacer */}
             <div style={{ paddingBottom: "env(safe-area-inset-bottom)" }} />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

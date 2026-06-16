@@ -16,7 +16,7 @@ import TodayTimeline from "../components/dashboard/TodayTimeline";
 import EvidenceStrengthCard from "../components/dashboard/EvidenceStrengthCard";
 import ImprovedQuickCapture from "../components/dashboard/ImprovedQuickCapture";
 import usePullToRefresh from "../hooks/usePullToRefresh";
-import { isNativeRuntime, getPlatform } from "../lib/native-auth";
+import { isNativeRuntime, getPlatform, getNativeReceipt, finishNativeTransaction } from "../lib/native-auth";
 import { initPurchases, purchaseSubscription } from "../lib/purchase-service";
 import { IAP_PRODUCTS } from "../lib/iap-products";
 import { appParams } from "../lib/app-params";
@@ -142,13 +142,26 @@ export default function Dashboard() {
         throw new Error('Could not detect platform');
       }
 
-      if (platform !== 'android') {
-        alert('In-app purchases on iOS are not enabled yet.');
-        return;
+      if (platform === 'android') {
+        await initPurchases();
+        await purchaseSubscription(checkoutData.priceId);
+      } else if (platform === 'ios') {
+        // iOS: use Pricing page flow with getNativeReceipt
+        const receipt = await getNativeReceipt(checkoutData.iapProductId);
+        const payload = {
+          platform: 'ios',
+          productId: receipt.productId || checkoutData.iapProductId,
+          transactionId: receipt.transactionId,
+          useSandbox: import.meta.env.VITE_IAP_USE_SANDBOX === 'true',
+        };
+        const verifyResult = await base44.functions.invoke('verifyInAppPurchase', payload);
+        if (verifyResult?.data?.success !== true) {
+          throw new Error(verifyResult?.data?.error || 'Purchase verification failed');
+        }
+        await finishNativeTransaction(receipt.transactionId);
+      } else {
+        throw new Error(`Unsupported platform: ${platform}`);
       }
-
-      await initPurchases();
-      await purchaseSubscription(checkoutData.priceId);
 
       // Backend verification happens inside purchaseSubscription; refresh user state.
       await load();
