@@ -11,6 +11,13 @@ export default defineConfig(({ mode }) => {
   return {
     // Relative asset paths are safer for Android/iOS WebView bundles.
     base: './',
+    build: {
+      rollupOptions: {
+        // capacitor-plugin-cdv-purchase is a native Capacitor plugin resolved
+        // at runtime inside iOS/Android WebView — it must NOT be bundled.
+        external: ['capacitor-plugin-cdv-purchase'],
+      },
+    },
     logLevel: 'error',
     // Bake env values into the bundle so they survive Xcode/Gradle builds
     // where the .env file is not present at runtime.
