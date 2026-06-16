@@ -20,6 +20,15 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.VITE_BASE44_FUNCTIONS_VERSION': JSON.stringify(env.VITE_BASE44_FUNCTIONS_VERSION),
       'import.meta.env.VITE_NATIVE_AUTH_SCHEME': JSON.stringify(env.VITE_NATIVE_AUTH_SCHEME),
       'import.meta.env.VITE_BYPASS_PAYWALL': JSON.stringify(env.VITE_BYPASS_PAYWALL),
+      // ── IAP product IDs (baked in so they survive Xcode/Gradle packaging) ──
+      'import.meta.env.VITE_IAP_PRODUCT_CORE_INDIVIDUAL':       JSON.stringify(env.VITE_IAP_PRODUCT_CORE_INDIVIDUAL       || 'com.impactvault.core.individual.yearly'),
+      'import.meta.env.VITE_IAP_PRODUCT_CORE_FAMILY':           JSON.stringify(env.VITE_IAP_PRODUCT_CORE_FAMILY           || 'com.impactvault.core.family.yearly'),
+      'import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_INDIVIDUAL_MONTHLY': JSON.stringify(env.VITE_IAP_PRODUCT_INSIGHTS_INDIVIDUAL_MONTHLY || 'com.impactvault.insights.core.monthly'),
+      'import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_INDIVIDUAL_YEARLY':  JSON.stringify(env.VITE_IAP_PRODUCT_INSIGHTS_INDIVIDUAL_YEARLY  || 'com.impactvault.insights.core.yearly'),
+      'import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_FAMILY_MONTHLY':     JSON.stringify(env.VITE_IAP_PRODUCT_INSIGHTS_FAMILY_MONTHLY     || 'com.impactvault.insights.family.monthly'),
+      'import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_FAMILY_YEARLY':      JSON.stringify(env.VITE_IAP_PRODUCT_INSIGHTS_FAMILY_YEARLY      || 'com.impactvault.insights.family.yearly'),
+      'import.meta.env.VITE_IAP_USE_SANDBOX':      JSON.stringify(env.VITE_IAP_USE_SANDBOX      || 'true'),
+      'import.meta.env.VITE_ANDROID_PACKAGE_NAME': JSON.stringify(env.VITE_ANDROID_PACKAGE_NAME || 'com.vault.impactVault'),
     },
     plugins: [
       base44({

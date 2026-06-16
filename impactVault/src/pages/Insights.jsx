@@ -105,10 +105,10 @@ function UpgradeTeaser() {
           ))}
         </div>
         <Link
-          to={createPageUrl("Pricing") + "?section=insights"}
+          to={createPageUrl("InsightsPricing")}
           className="flex items-center justify-center gap-2 w-full py-3 bg-amber-600 text-white text-sm font-semibold rounded-xl hover:bg-amber-700 transition-colors"
         >
-          <Sparkles className="w-4 h-4" /> Unlock Insights — from $9/month
+          <Sparkles className="w-4 h-4" /> Unlock Insights — from $11.99/month
           <ChevronRight className="w-4 h-4" />
         </Link>
         <p className="text-xs text-center text-amber-700 mt-2">Cancel anytime · Add to any Core plan</p>
@@ -130,7 +130,7 @@ function LockedOverlay() {
         <h3 className="text-base font-semibold text-stone-800 mb-2">Your data is ready to reveal patterns.</h3>
         <p className="text-sm text-stone-500 mb-4 max-w-xs">Unlock Insights to see behaviour trends, triggers, and progress over time.</p>
         <Link
-          to={createPageUrl("Pricing")}
+          to={createPageUrl("InsightsPricing")}
           className="flex items-center gap-2 px-5 py-2.5 bg-amber-600 text-white text-sm font-semibold rounded-xl hover:bg-amber-700 transition-colors"
         >
           <Sparkles className="w-4 h-4" /> Unlock Full Insights
@@ -268,7 +268,7 @@ export default function Insights() {
           )}
           {!hasInsights && (
             <Link
-              to={createPageUrl("Pricing")}
+              to={createPageUrl("InsightsPricing")}
               className="inline-flex items-center gap-1.5 mt-3 px-4 py-2 bg-amber-600 text-white text-xs font-semibold rounded-xl hover:bg-amber-700 transition-colors"
             >
               <Sparkles className="w-3 h-3" /> Unlock Full Insights
@@ -294,7 +294,7 @@ export default function Insights() {
                 <p className="text-xs text-amber-700 mt-0.5">Upgrade to Insights now and instantly uncover support patterns, emotional regulation trends, recovery insights, and changes over time.</p>
               </div>
               <Link
-                to={createPageUrl("Pricing") + "?section=insights"}
+                to={createPageUrl("InsightsPricing")}
                 className="shrink-0 flex items-center gap-1.5 px-4 py-2 bg-amber-600 text-white text-xs font-semibold rounded-xl hover:bg-amber-700 transition-colors"
               >
                 <Sparkles className="w-3.5 h-3.5" /> Upgrade to Insights

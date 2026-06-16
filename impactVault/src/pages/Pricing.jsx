@@ -8,14 +8,9 @@ import {
   finishNativeTransaction,
 } from "../lib/native-auth";
 
-const IAP_PRODUCTS = {
-  coreIndividual: import.meta.env.VITE_IAP_PRODUCT_CORE_INDIVIDUAL || "com.impactvault.core.individual.yearly",
-  coreFamily: import.meta.env.VITE_IAP_PRODUCT_CORE_FAMILY || "com.impactvault.core.family.yearly",
-  insightsIndividualMonthly: import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_INDIVIDUAL_MONTHLY || "",
-  insightsIndividualYearly: import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_INDIVIDUAL_YEARLY || "",
-  insightsFamilyMonthly: import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_FAMILY_MONTHLY || "",
-  insightsFamilyYearly: import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_FAMILY_YEARLY || "",
-};
+import { IAP_PRODUCTS } from "../lib/iap-products";
+
+const INSIGHTS_IAP = IAP_PRODUCTS;
 
 const CORE_PLANS = [
   {
@@ -57,16 +52,16 @@ const CORE_PLANS = [
 const INSIGHTS_PLANS = [
   {
     name: "Insights",
-    tagline: "Weekly pattern tracking and functional insight summaries",
-    price3m: "$27",
-    priceYearly: "$75",
-    subLabel3m: "3-month recurring charge ($9/month)",
-    subLabel3mDetail: "Minimum 3-month commitment · Billed every 3 months",
+    tagline: "Core Insights for one person",
+    price3m: "$11.99",
+    priceYearly: "$119.99",
+    subLabel3m: "Monthly recurring charge",
+    subLabel3mDetail: "Billed monthly · Cancel anytime",
     priceId3m: "price_1TLEdPDZJD79Rb2439Vv2XLE",
     priceIdYearly: "price_1TLEgSDZJD79Rb24JX6rF9sP",
-    iapProductId3m: IAP_PRODUCTS.insightsIndividualMonthly,
-    iapProductIdYearly: IAP_PRODUCTS.insightsIndividualYearly,
-    buttonLabel: "Get Weekly Insights",
+    iapProductId3m: INSIGHTS_IAP.insightsCoreMonthly,
+    iapProductIdYearly: INSIGHTS_IAP.insightsCoreYearly,
+    buttonLabel: "Get Core Insights",
     features: [
       "Weekly summaries of what changed",
       "Identify patterns over time - not isolated moments",
@@ -79,14 +74,14 @@ const INSIGHTS_PLANS = [
   {
     name: "Family Insights",
     tagline: "Understand patterns and support needs across your family over time",
-    price3m: "$45",
-    priceYearly: "$125",
-    subLabel3m: "3-month recurring charge ($15/month)",
-    subLabel3mDetail: "Minimum 3-month commitment · Billed every 3 months",
+    price3m: "$19.99",
+    priceYearly: "$199.99",
+    subLabel3m: "Monthly recurring charge",
+    subLabel3mDetail: "Billed monthly · Cancel anytime",
     priceId3m: "price_1TLEiZDZJD79Rb24xqNkjp8I",
     priceIdYearly: "price_1TLEmQDZJD79Rb24AvripyHx",
-    iapProductId3m: IAP_PRODUCTS.insightsFamilyMonthly,
-    iapProductIdYearly: IAP_PRODUCTS.insightsFamilyYearly,
+    iapProductId3m: INSIGHTS_IAP.insightsFamilyMonthly,
+    iapProductIdYearly: INSIGHTS_IAP.insightsFamilyYearly,
     featured: true,
     buttonLabel: "Get Family Insights",
     features: [
@@ -102,7 +97,7 @@ const INSIGHTS_PLANS = [
 
 export default function Pricing() {
   const [loading, setLoading] = useState(false);
-  const [insightsBilling, setInsightsBilling] = useState("3monthly");
+  const [insightsBilling, setInsightsBilling] = useState("monthly");
   const [user, setUser] = useState(null);
   const nativeRuntime = isNativeRuntime();
 
@@ -249,8 +244,8 @@ export default function Pricing() {
       alert("Checkout is only available from the published app.");
       return;
     }
-    const priceId = insightsBilling === "3monthly" ? plan.priceId3m : plan.priceIdYearly;
-    const iapProductId = insightsBilling === "3monthly" ? plan.iapProductId3m : plan.iapProductIdYearly;
+    const priceId = insightsBilling === "monthly" ? plan.priceId3m : plan.priceIdYearly;
+    const iapProductId = insightsBilling === "monthly" ? plan.iapProductId3m : plan.iapProductIdYearly;
     setLoading(true);
     try {
       if (nativeRuntime) {
@@ -366,12 +361,12 @@ export default function Pricing() {
           </div>
           <div className="flex items-center bg-stone-900 rounded-2xl p-1 shrink-0">
             <button
-              onClick={() => setInsightsBilling("3monthly")}
+              onClick={() => setInsightsBilling("monthly")}
               className={`px-4 py-2 rounded-xl text-xs font-semibold transition-colors ${
-                insightsBilling === "3monthly" ? "bg-white text-stone-900" : "text-stone-400 hover:text-white"
+                insightsBilling === "monthly" ? "bg-white text-stone-900" : "text-stone-400 hover:text-white"
               }`}
             >
-              3 Monthly
+              Monthly
             </button>
             <button
               onClick={() => setInsightsBilling("yearly")}
@@ -379,7 +374,7 @@ export default function Pricing() {
                 insightsBilling === "yearly" ? "bg-white text-stone-900" : "text-stone-400 hover:text-white"
               }`}
             >
-              Yearly <span className="text-amber-400">Save ~30%</span>
+              Annual <span className="text-amber-400">Save ~17%</span>
             </button>
           </div>
         </div>
@@ -449,9 +444,9 @@ export default function Pricing() {
 
           {/* Insights plan cards */}
           {visibleInsightsPlans.map((plan) => {
-            const price = insightsBilling === "3monthly" ? plan.price3m : plan.priceYearly;
-            const billingUnit = insightsBilling === "3monthly" ? "AUD" : "AUD / year";
-            const hasSelectedNativeProduct = insightsBilling === "3monthly" ? !!plan.iapProductId3m : !!plan.iapProductIdYearly;
+            const price = insightsBilling === "monthly" ? plan.price3m : plan.priceYearly;
+            const billingUnit = insightsBilling === "monthly" ? "/ month" : "/ year";
+            const hasSelectedNativeProduct = insightsBilling === "monthly" ? !!plan.iapProductId3m : !!plan.iapProductIdYearly;
             return (
               <div
                 key={plan.name}
@@ -471,7 +466,7 @@ export default function Pricing() {
                   <span className="text-4xl font-bold text-stone-800">{price}</span>
                   <span className="text-stone-500 ml-2 text-sm">{billingUnit}</span>
                 </div>
-                {insightsBilling === "3monthly" && (
+                {insightsBilling === "monthly" && (
                   <div className="mb-4">
                     <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold mb-1 ${plan.featured ? "bg-amber-100 text-amber-800" : "bg-stone-100 text-stone-700"}`}>
                       🔁 {plan.subLabel3m}

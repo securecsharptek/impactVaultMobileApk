@@ -15,7 +15,10 @@
     "open:android": "cap open android",
     "build:apk": "npm run build:mobile && cap sync android && cd android && gradlew assembleDebug",
     "adb:logcat": "adb logcat | grep -E 'OAuth|impactVault|Capacitor'",
-    "adb:install": "adb install -r android/app/build/outputs/apk/debug/app-debug.apk"
+    "adb:install": "adb install -r android/app/build/outputs/apk/debug/app-debug.apk",
+    "sync:ios": "cap sync ios",
+    "open:ios": "cap open ios",
+    "build:ios": "npm run build:mobile && cap sync ios"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.29",

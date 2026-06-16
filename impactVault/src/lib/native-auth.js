@@ -4,6 +4,7 @@ import { App as CapacitorApp } from '@capacitor/app';
 import { getLoginUrl } from '@base44/sdk/dist/utils/auth-utils';
 import { store, ProductType, Platform, ErrorCode, LogLevel } from 'capacitor-plugin-cdv-purchase';
 import { appParams } from '@/lib/app-params';
+import { CORE_PRODUCT_IDS, INSIGHTS_PRODUCT_IDS } from '@/lib/iap-products';
 
 const DEFAULT_NATIVE_AUTH_SCHEME = 'com.impactvault.app';
 const DEFAULT_NATIVE_AUTH_HOST = 'auth';
@@ -46,13 +47,15 @@ const findStringValue = (sources, keys) => {
 };
 
 const getKnownIapProducts = () => {
+  // Always include hardcoded fallbacks so StoreKit registers all products
+  // even if the Vite define block didn't bake the env vars in correctly.
   const values = [
-    import.meta.env.VITE_IAP_PRODUCT_CORE_INDIVIDUAL || 'com.impactvault.core.individual.yearly',
-    import.meta.env.VITE_IAP_PRODUCT_CORE_FAMILY || 'com.impactvault.core.family.yearly',
-    import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_INDIVIDUAL_MONTHLY,
-    import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_INDIVIDUAL_YEARLY,
-    import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_FAMILY_MONTHLY,
-    import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_FAMILY_YEARLY,
+    import.meta.env.VITE_IAP_PRODUCT_CORE_INDIVIDUAL       || CORE_PRODUCT_IDS.coreIndividual,
+    import.meta.env.VITE_IAP_PRODUCT_CORE_FAMILY           || CORE_PRODUCT_IDS.coreFamily,
+    import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_INDIVIDUAL_MONTHLY || INSIGHTS_PRODUCT_IDS.insightsCoreMonthly,
+    import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_INDIVIDUAL_YEARLY  || INSIGHTS_PRODUCT_IDS.insightsCoreYearly,
+    import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_FAMILY_MONTHLY     || INSIGHTS_PRODUCT_IDS.insightsFamilyMonthly,
+    import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_FAMILY_YEARLY      || INSIGHTS_PRODUCT_IDS.insightsFamilyYearly,
   ].filter((value) => typeof value === 'string' && value.trim());
 
   return Array.from(new Set(values));
