@@ -1,3 +1,13 @@
+// Canonical app-wide product IDs used by pricing/dashboard and purchase flows.
+export const IAP_PRODUCTS = {
+  coreIndividual: import.meta.env.VITE_IAP_PRODUCT_CORE_INDIVIDUAL || 'com.impactvault.core.individual.yearly',
+  coreFamily: import.meta.env.VITE_IAP_PRODUCT_CORE_FAMILY || 'com.impactvault.core.family.yearly',
+  insightsIndividualMonthly: import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_INDIVIDUAL_MONTHLY || '',
+  insightsIndividualYearly: import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_INDIVIDUAL_YEARLY || '',
+  insightsFamilyMonthly: import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_FAMILY_MONTHLY || '',
+  insightsFamilyYearly: import.meta.env.VITE_IAP_PRODUCT_INSIGHTS_FAMILY_YEARLY || '',
+};
+
 // Maps Stripe price IDs (used by the web checkout) to Google Play product IDs.
 // Only Android core subscriptions are wired up here. Insights add-ons must be
 // created in Play Console before being added to this map.

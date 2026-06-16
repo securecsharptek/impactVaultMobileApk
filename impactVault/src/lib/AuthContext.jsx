@@ -5,6 +5,18 @@ import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 import { addNativeAuthListener, isNativeRuntime, openNativeLogin } from '@/lib/native-auth';
 
 const AuthContext = createContext();
+const STARTUP_TIMEOUT_MS = 12000;
+
+const withTimeout = (promise, timeoutMs, message) => {
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    clearTimeout(timeoutId);
+  });
+};
 
 const normalizeBaseUrl = (url) => {
   if (!url) return '';
@@ -53,11 +65,13 @@ export const AuthProvider = ({ children }) => {
 
   const checkAppState = async () => {
     try {
+      console.log('[AuthContext] Starting checkAppState');
       setIsLoadingPublicSettings(true);
       setAuthError(null);
 
       // Native WebView cannot use relative /api URLs reliably.
       if (isNativeRuntime() && !appParams.appBaseUrl) {
+        console.error('[AuthContext] Missing VITE_BASE44_APP_BASE_URL for native build');
         setAuthError({
           type: 'config_error',
           message: 'Missing VITE_BASE44_APP_BASE_URL for native build.'
@@ -69,6 +83,7 @@ export const AuthProvider = ({ children }) => {
       
       // First, check app public settings (with token if available)
       // This will tell us if auth is required, user not registered, etc.
+      console.log('[AuthContext] Creating app client with baseURL:', resolvePublicApiBaseUrl());
       const appClient = createAxiosClient({
         baseURL: resolvePublicApiBaseUrl(),
         headers: {
@@ -79,14 +94,22 @@ export const AuthProvider = ({ children }) => {
       });
       
       try {
-        const publicSettings = await appClient.get(`/prod/public-settings/by-id/${appParams.appId}`);
+        console.log('[AuthContext] Fetching public settings for app:', appParams.appId);
+        const publicSettings = await withTimeout(
+          appClient.get(`/prod/public-settings/by-id/${appParams.appId}`),
+          STARTUP_TIMEOUT_MS,
+          'Startup timed out while loading app settings. Check network and VITE_BASE44_APP_BASE_URL.'
+        );
+        console.log('[AuthContext] Public settings fetched successfully');
         setAppPublicSettings(publicSettings);
         
         // If we got the app public settings successfully, check if user is authenticated
         if (appParams.token) {
+          console.log('[AuthContext] Token found, checking user auth');
           await checkUserAuth();
         } else {
           // No token means user is not logged in — trigger login redirect
+          console.log('[AuthContext] No token found, triggering auth_required');
           setAuthError({
             type: 'auth_required',
             message: 'Authentication required'
@@ -96,10 +119,19 @@ export const AuthProvider = ({ children }) => {
         }
         setIsLoadingPublicSettings(false);
       } catch (appError) {
-        console.error('App state check failed:', appError);
+        console.error('[AuthContext] App state check failed:', appError);
+
+        const isStartupTimeout =
+          typeof appError?.message === 'string' &&
+          appError.message.toLowerCase().includes('timed out');
         
         // Handle app-level errors
-        if (appError.status === 403 && appError.data?.extra_data?.reason) {
+        if (isStartupTimeout) {
+          setAuthError({
+            type: 'network_timeout',
+            message: appError.message
+          });
+        } else if (appError.status === 403 && appError.data?.extra_data?.reason) {
           const reason = appError.data.extra_data.reason;
           if (reason === 'auth_required') {
             setAuthError({
@@ -141,7 +173,11 @@ export const AuthProvider = ({ children }) => {
     try {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
-      const currentUser = await base44.auth.me();
+      const currentUser = await withTimeout(
+        base44.auth.me(),
+        STARTUP_TIMEOUT_MS,
+        'Startup timed out while validating user session.'
+      );
       setUser(currentUser);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
@@ -155,6 +191,11 @@ export const AuthProvider = ({ children }) => {
         setAuthError({
           type: 'auth_required',
           message: 'Authentication required'
+        });
+      } else if (typeof error?.message === 'string' && error.message.toLowerCase().includes('timed out')) {
+        setAuthError({
+          type: 'network_timeout',
+          message: error.message
         });
       }
     }

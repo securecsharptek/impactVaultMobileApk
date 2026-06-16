@@ -8,7 +8,6 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recha
 import PageHeader from "../components/shared/PageHeader";
 import { jsPDF } from "jspdf";
 import { appParams } from "@/lib/app-params";
-import { toLocalDateString } from "@/utils";
 
 const ENV_LABELS = { home: "Home", school: "School", community: "Community", other: "Other" };
 const SUPPORT_LABELS = {
@@ -279,7 +278,7 @@ export default function ReviewReport() {
       const now = new Date();
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
-      const dateStr = (d) => toLocalDateString(d);
+      const dateStr = (d) => d.toISOString().split('T')[0];
 
       const last30 = impacts.filter((i) => i.date >= dateStr(thirtyDaysAgo));
       const prev30 = impacts.filter((i) => i.date >= dateStr(sixtyDaysAgo) && i.date < dateStr(thirtyDaysAgo));
@@ -745,7 +744,7 @@ export default function ReviewReport() {
             const now = new Date();
             const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
             const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
-            const dateStr = (d) => toLocalDateString(d);
+            const dateStr = (d) => d.toISOString().split('T')[0];
 
             const last30 = data.impacts.filter((i) => i.date >= dateStr(thirtyDaysAgo));
             const prev30 = data.impacts.filter((i) => i.date >= dateStr(sixtyDaysAgo) && i.date < dateStr(thirtyDaysAgo));

@@ -2,10 +2,9 @@ import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { App as CapacitorApp } from '@capacitor/app';
 import { getLoginUrl } from '@base44/sdk/dist/utils/auth-utils';
-import { store, ProductType, Platform, ErrorCode, LogLevel } from 'capacitor-plugin-cdv-purchase';
 import { appParams } from '@/lib/app-params';
 
-const DEFAULT_NATIVE_AUTH_SCHEME = 'com.impactvault.app';
+const DEFAULT_NATIVE_AUTH_SCHEME = 'com.vault.impactVault';
 const DEFAULT_NATIVE_AUTH_HOST = 'auth';
 
 const getAuthScheme = () => import.meta.env.VITE_NATIVE_AUTH_SCHEME || DEFAULT_NATIVE_AUTH_SCHEME;
@@ -23,6 +22,21 @@ const pendingTransactions = new Map();
 const waitersByProduct = new Map();
 
 let iapInitPromise = null;
+
+const getIapApi = () => {
+  const plugin = globalThis?.CdvPurchase;
+  if (!plugin?.store) {
+    throw new Error('Cordova purchase plugin is not available in this runtime');
+  }
+
+  return {
+    store: plugin.store,
+    ProductType: plugin.ProductType,
+    Platform: plugin.Platform,
+    ErrorCode: plugin.ErrorCode,
+    LogLevel: plugin.LogLevel,
+  };
+};
 
 const mask = (value) => {
   if (!value || typeof value !== 'string') return value;
@@ -60,6 +74,7 @@ const getKnownIapProducts = () => {
 
 const resolveProductPlatform = () => {
   const platform = getPlatform();
+  const { Platform } = getIapApi();
   return platform === 'ios' ? Platform.APPLE_APPSTORE : Platform.GOOGLE_PLAY;
 };
 
@@ -132,6 +147,8 @@ const initializeNativeIap = async () => {
   if (!isNativeRuntime()) {
     throw new Error('IAP initialization is only available on native platforms');
   }
+
+  const { store, ProductType, Platform, ErrorCode, LogLevel } = getIapApi();
 
   if (!iapInitPromise) {
     console.log('[IAP] Initializing native purchase store');
@@ -256,6 +273,8 @@ export const getNativeReceipt = async (productId) => {
   console.log('[IAP] Step 2: Initializing / reusing store...');
   await initializeNativeIap();
   console.log('[IAP] Step 2: Store ready ✅');
+
+  const { store, Platform, ErrorCode } = getIapApi();
 
   const rawPlatform = Capacitor.getPlatform();
   const nativePlatform = rawPlatform === 'ios' ? Platform.APPLE_APPSTORE : Platform.GOOGLE_PLAY;

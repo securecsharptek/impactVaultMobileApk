@@ -27,6 +27,14 @@ const AuthenticatedApp = () => {
   const shouldRedirectToLogin = authError?.type === 'auth_required';
   const isMobileApp = isNativeRuntime();
 
+  console.log('[App] AuthenticatedApp rendered', {
+    isLoadingAuth,
+    isLoadingPublicSettings,
+    authError: authError?.type,
+    shouldRedirectToLogin,
+    isMobileApp
+  });
+
   useEffect(() => {
     // For web, redirect to login; for mobile, show MobileLogin page
     if (shouldRedirectToLogin && !isMobileApp) {
@@ -59,10 +67,12 @@ const AuthenticatedApp = () => {
         </div>
       );
     }
+    console.error('Auth error:', authError);
     return (
-      <div className="fixed inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center">
-        <p className="text-sm text-slate-700">Unable to initialize app.</p>
-        <p className="text-xs text-slate-500 break-all">{authError.message}</p>
+      <div className="fixed inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center bg-red-50">
+        <p className="text-lg font-semibold text-red-900">Unable to initialize app</p>
+        <p className="text-sm text-red-700 break-all">{authError.message}</p>
+        <p className="text-xs text-red-600 break-all">Error type: {authError.type}</p>
       </div>
     );
   }

@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.impactvault.app',
+  appId: 'com.vault.impactVault',
   appName: 'impactVault',
   webDir: 'dist',
   server: {

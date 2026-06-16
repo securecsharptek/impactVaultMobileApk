@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Check, Sparkles } from "lucide-react";
 import { isNativeRuntime, getPlatform } from "@/lib/native-auth";
 import { initPurchases, getProducts, purchaseSubscription } from "@/lib/purchase-service";
-import { ANDROID_PRODUCTS } from "@/lib/iap-products";
+import { ANDROID_PRODUCTS, IAP_PRODUCTS } from "@/lib/iap-products";
 
 const CORE_PLANS = [
   {
